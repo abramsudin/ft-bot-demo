@@ -615,6 +615,18 @@ User: "what would happen if I dropped columns with null rate above 50%"
 User: "drop if null rate high and signal low"
 → {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}, {{"field": "confidence", "operator": "<", "threshold": 45}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
 
+User: "no need"  (history shows guardrail or dry-run block)
+→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "cancel"  (history shows guardrail or dry-run block)
+→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "never mind"
+→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "forget it"
+→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+
 User: "confirm"  (history shows prior dry-run: "drop if null rate > 0.60, 14 columns would change")
 → {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
 
