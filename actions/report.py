@@ -136,11 +136,16 @@ def _write_all_decisions(ws, decision_log, openpyxl):
         ws.column_dimensions[chr(64 + i)].width = w
     _header_row(ws, 1, headers, openpyxl)
     for i, entry in enumerate(decision_log, start=2):
+        ts = entry.get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts).strftime("%Y-%m-%d %H:%M UTC")
+        except Exception:
+            pass
         ws.cell(row=i, column=1, value=entry.get("col", ""))
         ws.cell(row=i, column=2, value=entry.get("decision", ""))
         ws.cell(row=i, column=3, value=entry.get("reason", ""))
         ws.cell(row=i, column=4, value=entry.get("source", ""))
-        ws.cell(row=i, column=5, value=entry.get("timestamp", ""))
+        ws.cell(row=i, column=5, value=ts)
         ws.cell(row=i, column=6, value=str(entry.get("override", False)))
         if entry.get("override"):
             for c in range(1, 7):
@@ -156,11 +161,16 @@ def _write_overrides(ws, override_entries, verdict_df, openpyxl):
     verdict_map = _build_verdict_map(verdict_df)
     for i, entry in enumerate(override_entries, start=2):
         col = entry.get("col", "")
+        ts2 = entry.get("timestamp", "")
+        try:
+            ts2 = datetime.fromisoformat(ts2).strftime("%Y-%m-%d %H:%M UTC")
+        except Exception:
+            pass
         ws.cell(row=i, column=1, value=col)
         ws.cell(row=i, column=2, value=verdict_map.get(col, "N/A"))
         ws.cell(row=i, column=3, value=entry.get("decision", ""))
         ws.cell(row=i, column=4, value=entry.get("reason", ""))
-        ws.cell(row=i, column=5, value=entry.get("timestamp", ""))
+        ws.cell(row=i, column=5, value=ts2)
 
 
 def _write_keep_list(ws, kept_cols, verdict_df, num_cols, cat_cols, openpyxl):
@@ -181,7 +191,9 @@ def _write_keep_list(ws, kept_cols, verdict_df, num_cols, cat_cols, openpyxl):
         ws.cell(row=i, column=3, value=round(float(conf), 1) if conf is not None else "N/A")
         ws.cell(row=i, column=4, value=col_type)
         ws.cell(row=i, column=5, value=risk_tag_map.get(col, ""))
-        ws.cell(row=i, column=6, value=profile_map.get(col, ""))
+        p = profile_map.get(col, "")
+        ws.cell(row=i, column=6, value=(p[:120] + "\u2026") if len(p) > 120 else p)
+        ws.cell(row=i, column=6).alignment = openpyxl.styles.Alignment(wrap_text=True)
         for c in range(1, 7):
             ws.cell(row=i, column=c).fill = green_fill
 
@@ -303,7 +315,7 @@ def _sf(row, keys) -> float | None:
         try:
             v = row[k]
             if v is not None and str(v) not in ("", "nan", "None"):
-                return round(float(v), 2)
+                return float(round(float(v), 2))
         except Exception:
             pass
     return None
