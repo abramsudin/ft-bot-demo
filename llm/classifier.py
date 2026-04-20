@@ -308,7 +308,7 @@ COMPARE     — User explicitly wants to compare the SAME metric across two or m
               ⚠️ If no specific visual_type is mentioned, use "default".
 
 DECIDE      — User is EXPLICITLY making a keep/drop decision (imperative statement).
-              Examples: "keep Var83", "drop it", "drop all columns with no signal"
+              Examples: "keep Var83", "drop it", "drop all FLAG columns"
               Zone examples: "drop all FLAG columns", "drop all KEEP and FLAG columns",
                         "keep all DROP columns", "keep all flagged columns",
                         "drop everything flagged", "keep the drop columns"
@@ -322,7 +322,9 @@ DECIDE      — User is EXPLICITLY making a keep/drop decision (imperative state
                  zones=["FLAG","KEEP"] (use zones list for multiple zones).
               ⚠️ Zone name is the verdict label the columns currently have, NOT the action.
                  "keep all DROP columns" means: take columns in the DROP zone → mark keep.
-
+              ⚠️ CRITICAL: Any phrase mentioning a column PROPERTY as the reason to drop
+                 ("with null values", "with no signal", "with low confidence", "with high nulls")
+                 → CONDITIONAL_DECIDE, NOT DECIDE. Only pure zone/column commands → DECIDE.
 UNDO        — User wants to reverse a previous decision.
               Examples: "undo that", "revert Var83", "go back",
                         "undo the last 3 decisions", "revert the last 2 changes",
@@ -689,6 +691,15 @@ User: "keep all DROP columns"
 
 User: "keep all flagged columns"
 → {{"intent": "DECIDE", "params": {{"column": null, "zone": "FLAG", "zones": null, "decision": "keep"}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "drop all columns with the null value"
+→ {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.0}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "drop columns with no signal"
+→ {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "confidence", "operator": "<", "threshold": 45}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "drop all columns with high null rates"
+→ {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
 
 User: "list all the flagged columns"
 → {{"intent": "EXPLORE", "params": {{"filter": "flagged columns"}}, "resolved_focus": null, "focus_clear": false}}
