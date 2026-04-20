@@ -669,6 +669,7 @@ def _safe_fallback(intent: str, action_result: dict) -> str:
                 else "I didn't quite catch that — could you rephrase?"
             )
         ),
+    }
 
     fn = fallbacks.get(intent, lambda r: "Done. What would you like to do next?")
     return fn(action_result)
