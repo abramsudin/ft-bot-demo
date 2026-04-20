@@ -436,11 +436,17 @@ The user asked to generate the final report.
     "AMBIGUOUS": """
 The user's message was unclear.
 
+Check "cancel" in the action result params:
+IF cancel == True:
+  - The user is rejecting/cancelling a previous suggestion or guardrail.
+  - Respond with a single short acknowledgement like "Got it, no changes made."
+  - Do NOT ask any clarifying question.
+  - Max 1 sentence.
+
 Check "reason" in the action result:
 IF reason == "conditional_logic":
   - Acknowledge the user wants to apply a conditional rule.
-  - Clarify that you can now handle these directly — give 1-2 examples of valid phrasings:
-    "drop flagged columns if null rate is high" or "keep columns with confidence above 70".
+  - Give 1-2 examples: "drop flagged columns if null rate is high" or "keep columns with confidence above 70".
   - Ask what condition they'd like to apply.
   - Max 3 sentences.
 IF reason == "missing_context":
@@ -654,12 +660,15 @@ def _safe_fallback(intent: str, action_result: dict) -> str:
         "EXPLAIN": lambda r: f"Here's a brief explanation of {r.get('concept', r.get('concepts', ['that concept'])[0])}.",
         "REPORT": lambda r: f"Report generated with {r.get('total_decisions', 0)} decisions recorded.",
         "AMBIGUOUS": lambda r: (
-            "It sounds like you want to apply a conditional rule — try something like "
-            "'drop flagged columns if null rate is high' or 'keep columns with confidence above 70'."
-            if r.get("reason") == "conditional_logic"
-            else "I didn't quite catch that — could you rephrase?"
+            "Got it, no changes made."
+            if r.get("cancel")
+            else (
+                "It sounds like you want to apply a conditional rule — try something like "
+                "'drop flagged columns if null rate is high' or 'keep columns with confidence above 70'."
+                if r.get("reason") == "conditional_logic"
+                else "I didn't quite catch that — could you rephrase?"
+            )
         ),
-    }
 
     fn = fallbacks.get(intent, lambda r: "Done. What would you like to do next?")
     return fn(action_result)
