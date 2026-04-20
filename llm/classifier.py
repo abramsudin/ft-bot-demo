@@ -361,6 +361,9 @@ EXPLAIN     — User wants a concept explained. Supports single or multiple conc
 REPORT      — User wants to export/generate the final Excel report.
               Examples: "export report", "I'm done", "generate the output"
               Params: {{}}
+              ⚠️ "no need", "cancel", "never mind", "forget it", "skip it", "don't do it",
+                 "stop", "no don't", "actually no" → these are CANCELLATION phrases.
+                 Route to AMBIGUOUS with params: {{"cancel": true}}
 
 AMBIGUOUS   — Message is unclear, multi-intent, or has an unresolvable pronoun.
               Params: {{}}
