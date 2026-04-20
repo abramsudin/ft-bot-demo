@@ -315,7 +315,7 @@ def _sf(row, keys) -> float | None:
         try:
             v = row[k]
             if v is not None and str(v) not in ("", "nan", "None"):
-                return float(round(float(v), 2))
+                return float(f"{float(v):.2f}")
         except Exception:
             pass
     return None
