@@ -432,7 +432,18 @@ The user asked to generate the final report.
 - If pending columns exist, mention that.
 - Max 3 sentences.
 """,
-
+    "ACKNOWLEDGE": """
+The user dismissed a suggestion or is standing by with nothing to action.
+- Respond with a single short, natural sentence.
+- Acknowledge that nothing was changed or that you are ready when they are.
+- Do NOT ask any clarifying question.
+- Do NOT offer alternatives or suggest next steps unless it flows completely naturally.
+- Max 1 sentence.
+Examples of good responses:
+  "Got it, no changes made."
+  "Understood — ready when you are."
+  "No worries, just let me know."
+""",
     "AMBIGUOUS": """
 The user's message was unclear.
 
@@ -659,14 +670,12 @@ def _safe_fallback(intent: str, action_result: dict) -> str:
         "STATUS": lambda r: f"So far: {r.get('decided', r.get('kept', 0) + r.get('dropped', 0))} decided — {r.get('kept', 0)} kept, {r.get('dropped', 0)} dropped, {r.get('pending', 0)} pending.",
         "EXPLAIN": lambda r: f"Here's a brief explanation of {r.get('concept', r.get('concepts', ['that concept'])[0])}.",
         "REPORT": lambda r: f"Report generated with {r.get('total_decisions', 0)} decisions recorded.",
+        "ACKNOWLEDGE": lambda r: "Got it — ready when you are.",
         "AMBIGUOUS": lambda r: (
-            "Got it, no changes made."
-            if r.get("cancel")
-            else (
-                "It sounds like you want to apply a conditional rule — try something like "
-                "'drop flagged columns if null rate is high' or 'keep columns with confidence above 70'."
-                if r.get("reason") == "conditional_logic"
-                else "I didn't quite catch that — could you rephrase?"
+            "It sounds like you want to apply a conditional rule — try something like "
+            "'drop flagged columns if null rate is high' or 'keep columns with confidence above 70'."
+            if r.get("reason") == "conditional_logic"
+            else "I didn't quite catch that — could you rephrase?"
             )
         ),
     }
