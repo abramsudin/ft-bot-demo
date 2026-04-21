@@ -63,6 +63,7 @@ VALID_INTENTS = {
     "COMPARE",
     "AMBIGUOUS",
     "EDA",                 # ← kept for regex fallback only; routes via ANALYSE deep_dive
+    "ACKNOWLEDGE",
 }
 
 _INTENT_PATTERNS = [
@@ -78,7 +79,9 @@ _INTENT_PATTERNS = [
     (r"\bAUTO_DECIDE\b",       "AUTO_DECIDE"),
     (r"\bCOMPARE\b",           "COMPARE"),
     (r"\bAMBIGUOUS\b",         "AMBIGUOUS"),
+    (r"\bACKNOWLEDGE\b",       "ACKNOWLEDGE"),
     (r"\bEDA\b",               "EDA"),  # fallback only
+    
 ]
 
 
@@ -361,9 +364,17 @@ EXPLAIN     — User wants a concept explained. Supports single or multiple conc
 REPORT      — User wants to export/generate the final Excel report.
               Examples: "export report", "I'm done", "generate the output"
               Params: {{}}
-              ⚠️ "no need", "cancel", "never mind", "forget it", "skip it", "don't do it",
-                 "stop", "no don't", "actually no" → these are CANCELLATION phrases.
-                 Route to AMBIGUOUS with params: {{"cancel": true}}
+
+ACKNOWLEDGE — User is dismissing, declining, or standing by. No action needed.
+              Examples: "no need", "never mind", "nvm", "skip it", "forget it",
+                        "don't do it", "actually no", "ok thanks", "got it",
+                        "alright", "noted", "cool", "stop", "no don't"
+              Params: {{}}
+              ⚠️ This is NOT the same as AMBIGUOUS. The user's meaning is clear —
+                 they are closing the topic or declining a suggestion. Do NOT ask
+                 a clarifying question. Do NOT route to AMBIGUOUS.
+              ⚠️ focus_clear=False — the topic has not changed, just the action
+                 was declined. active_focus should be preserved.
 
 AMBIGUOUS   — Message is unclear, multi-intent, or has an unresolvable pronoun.
               Params: {{}}
@@ -615,17 +626,20 @@ User: "what would happen if I dropped columns with null rate above 50%"
 User: "drop if null rate high and signal low"
 → {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}, {{"field": "confidence", "operator": "<", "threshold": 45}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
 
-User: "no need"  (history shows guardrail or dry-run block)
-→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+User: "no need"
+→ {{"intent": "ACKNOWLEDGE", "params": {{}}, "resolved_focus": null, "focus_clear": false}}
 
-User: "cancel"  (history shows guardrail or dry-run block)
-→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+User: "cancel"
+→ {{"intent": "ACKNOWLEDGE", "params": {{}}, "resolved_focus": null, "focus_clear": false}}
 
 User: "never mind"
-→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+→ {{"intent": "ACKNOWLEDGE", "params": {{}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "ok thanks"
+→ {{"intent": "ACKNOWLEDGE", "params": {{}}, "resolved_focus": null, "focus_clear": false}}
 
 User: "forget it"
-→ {{"intent": "AMBIGUOUS", "params": {{"cancel": true}}, "resolved_focus": null, "focus_clear": false}}
+→ {{"intent": "ACKNOWLEDGE", "params": {{}}, "resolved_focus": null, "focus_clear": false}}
 
 User: "confirm"  (history shows prior dry-run: "drop if null rate > 0.60, 14 columns would change")
 → {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
