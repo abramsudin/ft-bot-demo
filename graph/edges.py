@@ -36,6 +36,7 @@ from actions import (
     compare,
     conditional_decide,
     clarify,
+    acknowledge,
 )
 
 INTENT_MAP: dict = {
@@ -51,6 +52,7 @@ INTENT_MAP: dict = {
     "COMPARE"           : compare.run,
     "CONDITIONAL_DECIDE": conditional_decide.run,
     "AMBIGUOUS"         : clarify.run,
+    "ACKNOWLEDGE"       : acknowledge.run,
 }
 
 
