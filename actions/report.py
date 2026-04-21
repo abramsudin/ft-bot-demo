@@ -19,6 +19,7 @@
 
 import io
 import os
+import re
 from datetime import datetime, timezone
 
 HEADER_FILL_HEX = "1F4E79"
@@ -192,7 +193,8 @@ def _write_keep_list(ws, kept_cols, verdict_df, num_cols, cat_cols, openpyxl):
         ws.cell(row=i, column=4, value=col_type)
         ws.cell(row=i, column=5, value=risk_tag_map.get(col, ""))
         p = profile_map.get(col, "")
-        ws.cell(row=i, column=6, value=(p[:120] + "\u2026") if len(p) > 120 else p)
+        p = re.sub(r'(\d+\.\d{3,})%', lambda m: f"{float(m.group(1)):.1f}%", p)
+        ws.cell(row=i, column=6, value=(p[:120] + "…") if len(p) > 120 else p)
         ws.cell(row=i, column=6).alignment = openpyxl.styles.Alignment(wrap_text=True)
         for c in range(1, 7):
             ws.cell(row=i, column=c).fill = green_fill
@@ -213,7 +215,12 @@ def _write_drop_list(ws, dropped_cols, verdict_df, decision_log, openpyxl):
         log_entry = reason_map.get(col, {})
         ws.cell(row=i, column=1, value=col)
         ws.cell(row=i, column=2, value=verdict_map.get(col, "N/A"))
-        ws.cell(row=i, column=3, value=log_entry.get("reason", ""))
+        bot_verdict = verdict_map.get(col, "")
+        if bot_verdict == "DROP-NULL":
+            drop_reason = "Fully null column — no data"
+        else:
+            drop_reason = log_entry.get("reason", "")
+        ws.cell(row=i, column=3, value=drop_reason)
         ws.cell(row=i, column=4, value=log_entry.get("source", ""))
         for c in range(1, 5):
             ws.cell(row=i, column=c).fill = red_fill
