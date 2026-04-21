@@ -285,18 +285,6 @@ def _render_sidebar():
             _cache_latest_report()
             st.rerun()
 
-        if st.session_state.last_report_path and \
-                os.path.exists(st.session_state.last_report_path):
-            with open(st.session_state.last_report_path, "rb") as f:
-                report_bytes = f.read()
-            fname = os.path.basename(st.session_state.last_report_path)
-            st.download_button(
-                label="⬇ Download Latest Report",
-                data=report_bytes,
-                file_name=fname,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-            )
 
         st.divider()
         st.caption("Type anything in the chat — no buttons needed.")
