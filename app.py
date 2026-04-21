@@ -282,6 +282,7 @@ def _render_sidebar():
         if st.button("📥 Export Report", use_container_width=True):
             with st.spinner("Generating report..."):
                 _run_turn("generate the report")
+            _cache_latest_report()
             st.rerun()
 
         if st.session_state.last_report_path and \
