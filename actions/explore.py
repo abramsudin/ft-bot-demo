@@ -249,7 +249,14 @@ def _apply_filter(
         if keyword in norm:
             cols = _filter_by_column_value(verdict_df, "verdict", verdict, feature_cols, upper=True)
             if cols:
-                return "verdict", cols
+                # Cross-reference live decisions — exclude columns the user has
+                # overridden since the scan (e.g. user dropped a bot-KEEP column).
+                if verdict == "KEEP":
+                    cols = [c for c in cols if decisions.get(c) != "drop"]
+                elif verdict == "DROP":
+                    cols = [c for c in cols if decisions.get(c) != "keep"]
+                if cols:
+                    return "verdict", cols
 
     # ── 2. Confidence band ────────────────────────────────────
     for keyword, band in _CONFIDENCE_KEYWORDS.items():
