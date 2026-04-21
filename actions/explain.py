@@ -190,20 +190,31 @@ CONCEPTS: dict[str, dict] = {
         "name"     : "Risk Tag",
         "what"     : (
             "A short label summarising the dominant risk or characteristic "
-            "associated with a column's statistical profile."
+            "associated with a column's statistical profile. There are exactly "
+            "6 canonical risk tags used by this bot."
         ),
         "how_used" : (
-            "Helps you quickly understand why a column was flagged or dropped "
-            "without reading every test result. Common tags: HIGH_NULL, "
-            "LOW_SIGNAL, REDUNDANT, NEAR_ZERO_VARIANCE, INFORMATIVE_NULL."
+            "The 6 canonical risk tags are:\n"
+            "  • Clean          — passes tests, null rate below 20%, no special concerns.\n"
+            "  • Moderate       — passes tests but null rate is 20–60%.\n"
+            "  • High-Null Risk — real signal exists but null rate above 60%; "
+            "the model may not see this column often.\n"
+            "  • Null-Driven    — signal comes entirely from being null, not from the "
+            "values themselves; consider creating an is_null indicator feature instead.\n"
+            "  • No Signal      — column was given a DROP or DROP-NULL verdict; "
+            "no predictive evidence found.\n"
+            "  • Redundancy Risk — added when a column is highly correlated with another "
+            "KEEP column; one of the pair adds little extra information."
         ),
         "threshold": None,
         "example"  : (
-            "A column with 80% missing values and no predictive signal would "
-            "be tagged HIGH_NULL. A column nearly identical to another KEEP "
-            "column would be tagged REDUNDANT."
+            "A column with 80% missing values and no signal gets 'High-Null Risk'. "
+            "A column whose null-pattern perfectly predicts churn gets 'Null-Driven'. "
+            "A column nearly identical to another KEEP column gets 'Redundancy Risk'."
         ),
-        "aliases"  : ["risk tag", "risk_tag", "tag", "risk label", "risk"],
+        "aliases"  : ["risk tag", "risk_tag", "tag", "risk label", "risk",
+                      "risk tags", "all risk tags", "possible risk tags",
+                      "what risk tags", "list risk tags"],
     },
 
     "null_group": {
