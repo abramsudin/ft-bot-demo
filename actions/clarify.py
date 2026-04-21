@@ -192,6 +192,12 @@ def _mentions_explore(msg: str) -> bool:
 
 
 def _mentions_both_actions(msg: str) -> bool:
+    # Case 1: message mentions BOTH keep and drop as competing options
+    has_keep = any(v in msg for v in ("keep", "retain", "include"))
+    has_drop = any(v in msg for v in ("drop", "remove", "exclude"))
+    if has_keep and has_drop:
+        return True
+    # Case 2: message mixes an analyse verb with a decide verb
     has_analyse = any(v in msg for v in ("analyse", "analyze", "what does", "tell me about", "stats"))
     has_decide  = any(v in msg for v in ("keep", "drop", "decide", "remove"))
     return has_analyse and has_decide
