@@ -428,54 +428,55 @@ NULL_DRIVEN_RATE_THRESHOLD = 0.50   # column must have > 50% nulls OR explicit r
 
 def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
     """
-    Return columns that are genuinely null-heavy.
+    Return columns whose risk_tag is exactly 'Null-Driven' (canonical KT §4.4 name).
 
-    Issue #7 fix: previously returned ANY column with a null_group assigned,
-    which could flood results with hundreds of columns that have just one null.
-    Now a column qualifies only if it meets AT LEAST ONE of:
-      1. null_rate > NULL_DRIVEN_RATE_THRESHOLD (> 50% missing)
-      2. risk_tag explicitly contains "null" or "high_null"
-      3. verdict is DROP-NULL
+    Falls back to null_rate > threshold only if no risk_tag column exists.
+    DROP-NULL verdict columns are always included.
     """
     try:
         results = set()
 
-        # Path 1: null_rate threshold
-        if "null_rate" in verdict_df.columns or "missing_rate" in verdict_df.columns:
-            rate_col = "null_rate" if "null_rate" in verdict_df.columns else "missing_rate"
-            mask = verdict_df[rate_col].astype(float) > NULL_DRIVEN_RATE_THRESHOLD
-            if "column" in verdict_df.columns:
-                matched = verdict_df.loc[mask, "column"].tolist()
-            else:
-                matched = verdict_df.loc[mask].index.tolist()
-            results.update(c for c in matched if c in feature_cols)
-
-        # Path 2: risk_tag contains "null" or "high_null"
+        # Path 1 (PRIMARY): exact risk_tag == 'Null-Driven' match
         for tag_col in ("risk_tag", "tag", "risk"):
             if tag_col in verdict_df.columns:
-                mask = verdict_df[tag_col].astype(str).str.lower().str.contains("null", na=False)
-                if "column" in verdict_df.columns:
-                    matched = verdict_df.loc[mask, "column"].tolist()
-                else:
-                    matched = verdict_df.loc[mask].index.tolist()
-                results.update(c for c in matched if c in feature_cols)
-                break
-
-        # Path 3: DROP-NULL verdict — use contains so "DROP-NULL" / "DROP_NULL" / "drop-null" all match
-        for verdict_col in ("verdict",):
-            if verdict_col in verdict_df.columns:
                 mask = (
-                    verdict_df[verdict_col]
+                    verdict_df[tag_col]
                     .astype(str)
-                    .str.upper()
-                    .str.contains("DROP.NULL", regex=True, na=False)
+                    .str.strip()
+                    .str.lower() == "null-driven"
                 )
                 if "column" in verdict_df.columns:
                     matched = verdict_df.loc[mask, "column"].tolist()
                 else:
                     matched = verdict_df.loc[mask].index.tolist()
                 results.update(c for c in matched if c in feature_cols)
-                break
+                break  # only check first found tag column
+
+        # Path 2 (FALLBACK): if no risk_tag column at all, use null_rate threshold
+        if not results:
+            for rate_col in ("null_rate", "missing_rate"):
+                if rate_col in verdict_df.columns:
+                    mask = verdict_df[rate_col].astype(float) > NULL_DRIVEN_RATE_THRESHOLD
+                    if "column" in verdict_df.columns:
+                        matched = verdict_df.loc[mask, "column"].tolist()
+                    else:
+                        matched = verdict_df.loc[mask].index.tolist()
+                    results.update(c for c in matched if c in feature_cols)
+                    break
+
+        # Path 3: DROP-NULL verdict — always include
+        if "verdict" in verdict_df.columns:
+            mask = (
+                verdict_df["verdict"]
+                .astype(str)
+                .str.upper()
+                .str.contains("DROP.NULL", regex=True, na=False)
+            )
+            if "column" in verdict_df.columns:
+                matched = verdict_df.loc[mask, "column"].tolist()
+            else:
+                matched = verdict_df.loc[mask].index.tolist()
+            results.update(c for c in matched if c in feature_cols)
 
         return [c for c in feature_cols if c in results]   # preserve original order
     except Exception:
