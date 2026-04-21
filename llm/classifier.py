@@ -376,8 +376,16 @@ ACKNOWLEDGE — User is dismissing, declining, or standing by. No action needed.
               ⚠️ focus_clear=False — the topic has not changed, just the action
                  was declined. active_focus should be preserved.
 
-AMBIGUOUS   — Message is unclear, multi-intent, or has an unresolvable pronoun.
-              Params: {{}}
+AMBIGUOUS   — Message is unclear, multi-intent, or has an unresolvable pronoun,
+              OR contains gibberish/unrecognisable tokens with no clear intent.
+              Params: {{ "ambiguity_type": "generic" | "ambiguous_column" | "pronoun_unclear" | "intent_unclear" | "no_column" }}
+              ⚠️ ALWAYS use AMBIGUOUS (never OVERVIEW) when the message contains
+                 gibberish tokens or is a vague continuation like "what are my options?",
+                 "what else?", "what now?" with no active_focus.
+              ⚠️ Partial column names (e.g. "keep Var", "drop Var1") that match
+                 multiple columns → AMBIGUOUS with ambiguity_type="ambiguous_column".
+              ⚠️ Message mentions BOTH "drop" and "keep" as possible actions →
+                 AMBIGUOUS with ambiguity_type="intent_unclear".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 KEY ROUTING DECISIONS — READ CAREFULLY
@@ -861,6 +869,18 @@ User: "what is the overall churn rate?"
 
 User: "how is the null rate spread across columns?"
 → {{"intent": "OVERVIEW", "params": {{}}, "resolved_focus": null, "focus_clear": true}}
+
+User: "xklqpzrt maybe do something with the data"
+→ {{"intent": "AMBIGUOUS", "params": {{"ambiguity_type": "generic"}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "keep Var"  (partial column name — matches multiple columns, no exact match)
+→ {{"intent": "AMBIGUOUS", "params": {{"ambiguity_type": "ambiguous_column"}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "should I drop or keep these?"  (mentions both drop and keep — intent unclear)
+→ {{"intent": "AMBIGUOUS", "params": {{"ambiguity_type": "intent_unclear"}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "what are my options from here?"  (vague continuation, active_focus=null)
+→ {{"intent": "AMBIGUOUS", "params": {{"ambiguity_type": "generic"}}, "resolved_focus": null, "focus_clear": false}}
 """
 
 
