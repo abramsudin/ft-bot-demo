@@ -163,7 +163,8 @@ def respond_node(state: dict) -> dict:
     if "draft_mode" in action_result:
         new_draft_mode = action_result["draft_mode"]
 
-    return {
+    # Build base return
+    respond_result = {
         "last_response": response,
         "messages"     : updated_messages,
         "action_result": None,
@@ -173,3 +174,15 @@ def respond_node(state: dict) -> dict:
         "undo_stack"   : state.get("undo_stack", []),
         "decision_log" : state.get("decision_log", []),
     }
+
+    # Forward active_focus if an action explicitly set it (e.g. undo.py restoring
+    # from snapshot, or overview.py clearing it). Without this, LangGraph keeps
+    # whatever active_focus was set by understand_node, ignoring the action's update.
+    if action_result and "active_focus" in action_result:
+        respond_result["active_focus"] = action_result["active_focus"]
+
+    # Forward overview_mode if an action set it (overview.py sets this explicitly)
+    if action_result and "overview_mode" in action_result:
+        respond_result["overview_mode"] = action_result["overview_mode"]
+
+    return respond_result
