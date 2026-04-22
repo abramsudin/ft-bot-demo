@@ -423,7 +423,10 @@ def _filter_by_confidence(verdict_df, band: str, feature_cols: list) -> list[str
 
 
 # Issue #7: threshold for "null-driven" filter
-NULL_DRIVEN_RATE_THRESHOLD = 0.50   # column must have > 50% nulls OR explicit risk_tag
+# Issue C FIX: null_rate in verdict_df is stored as a percentage (e.g. 97.5 = 97.5%).
+# Old value of 0.50 was being evaluated as "> 0.5%" — almost every column with any nulls
+# passed, inflating results from ~22 to ~40. Correct value is 50.0 (meaning > 50% nulls).
+NULL_DRIVEN_RATE_THRESHOLD = 50.0
 
 
 def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
