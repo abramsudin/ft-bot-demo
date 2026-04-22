@@ -192,6 +192,12 @@ def _run_turn(user_text: str):
     state = st.session_state.agent.invoke(state)
     st.session_state.state = state
 
+    # Issue D FIX: AUTO_DECIDE updates decisions in state but the Streamlit sidebar
+    # reads from st.session_state.state which is set before st.rerun() is called.
+    # Without this, the sidebar counts stay stale until the next user interaction.
+    if state.get("intent") == "AUTO_DECIDE":
+        st.rerun()
+
     ts        = _now_str()
     is_report = (state.get("intent") == "REPORT")
 
@@ -284,7 +290,6 @@ def _render_sidebar():
                 _run_turn("generate the report")
             _cache_latest_report()
             st.rerun()
-
 
         st.divider()
         st.caption("Type anything in the chat — no buttons needed.")
