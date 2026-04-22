@@ -521,13 +521,18 @@ def _build_prompt(intent: str, action_result: dict, user_message: str = "", guar
         f"lead with the direct answer before any broader narrative):\n{user_message}\n"
     ) if user_message else ""
 
+    GUARDRAIL_REMINDER_INTENTS = {"DECIDE", "CONDITIONAL_DECIDE", "STATUS", "REPORT"}
     guardrail_block = (
-        "\n⚠️ GUARDRAIL REMINDER: A prior bulk operation is still pending confirmation "
-        "from the user. You MUST prepend exactly ONE sentence to your response: "
-        "'Just a note — a bulk drop is still waiting for your confirm before it applies.' "
-        "Then answer the user's actual question normally. Do not forget this reminder.\n"
-    ) if guardrail_pending and not (action_result or {}).get("guardrail_triggered") else ""
-
+      "\n⚠️ GUARDRAIL REMINDER: A prior bulk operation is still pending confirmation "
+      "from the user. You MUST prepend exactly ONE sentence to your response: "
+      "'Just a note — a bulk drop is still waiting for your confirm before it applies.' "
+      "Then answer the user's actual question normally. Do not forget this reminder.\n"
+    ) if (
+        guardrail_pending
+        and intent in GUARDRAIL_REMINDER_INTENTS
+        and not (action_result or {}).get("guardrail_triggered")
+    ) else ""
+    
     return f"""You are the response writer for a feature selection assistant.
 Your job: turn the structured action result below into a clear, friendly reply for the user.
 
