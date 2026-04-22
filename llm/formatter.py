@@ -186,6 +186,10 @@ IF zone_analysis == True (zone-level query):
     - Lead with how many columns in this zone are worth keeping.
     - Name the TOP 3-5 columns from per_col_ranked (highest confidence) — give each a
       one-line reason using their risk_tag and confidence score.
+    - CRITICAL: per_col_ranked is sorted by confidence DESCENDING — the FIRST
+      entries are the highest confidence and ARE the keep candidates. NEVER
+      say "none are worth keeping" if per_col_ranked is non-empty. Even a
+      confidence of 1 means it has more signal than a DROP column.
     - Name 2-3 that should be dropped (bottom of per_col_ranked — lowest confidence,
       high null_rate). Give a one-line reason for each.
     - End with: "Want to keep these, or go deeper on any specific column?"
@@ -480,7 +484,7 @@ Be concise — max 4 sentences.
 """
 
 
-def _build_prompt(intent: str, action_result: dict, user_message: str = "") -> str:
+def _build_prompt(intent: str, action_result: dict, user_message: str = "", guardrail_pending: bool = False) -> str:
     guidance = _INTENT_GUIDANCE.get(intent, _FALLBACK_GUIDANCE)
     try:
         result_str = json.dumps(action_result, indent=2, default=str)
@@ -491,7 +495,14 @@ def _build_prompt(intent: str, action_result: dict, user_message: str = "") -> s
         f"\nUSER'S LATEST MESSAGE (answer this specific question if applicable — "
         f"lead with the direct answer before any broader narrative):\n{user_message}\n"
     ) if user_message else ""
-
+    
+    guardrail_block = (
+        "\n⚠️ GUARDRAIL REMINDER: A prior bulk operation is still pending confirmation "
+        "from the user. You MUST prepend exactly ONE sentence to your response: "
+        "'Just a note — a bulk drop is still waiting for your confirm before it applies.' "
+        "Then answer the user's actual question normally. Do not forget this reminder.\n"
+    ) if guardrail_pending and not (action_result or {}).get("guardrail_triggered") else ""
+    
     return f"""You are the response writer for a feature selection assistant.
 Your job: turn the structured action result below into a clear, friendly reply for the user.
 
@@ -501,6 +512,7 @@ INSTRUCTIONS FOR THIS INTENT:
 {guidance.strip()}
 
 GENERAL RULES:
+{guardrail_block}
 - Write in second person ("You", "Your") — address the user directly.
 - Never use bullet points or headers — write in flowing sentences.
 - Never say "Based on the data provided" or "As an AI" — just answer.
@@ -521,12 +533,12 @@ RAW ACTION RESULT (use as factual source — do not invent numbers):
 Write your reply now:"""
 
 
-def format_response(intent: str, action_result: dict | None, draft_mode: bool = False, user_message: str = "") -> str:
+def format_response(intent: str, action_result: dict | None, draft_mode: bool = False, user_message: str = "", guardrail_pending: bool = False) -> str:
     if not action_result:
         action_result = {"status": "ok", "detail": "Action completed with no additional output."}
 
-    prompt = _build_prompt(intent, action_result, user_message)
-
+    prompt = _build_prompt(intent, action_result, user_message, guardrail_pending)
+    
     load_dotenv()
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
