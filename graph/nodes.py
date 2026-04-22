@@ -156,7 +156,7 @@ def respond_node(state: dict) -> dict:
         action_result     = state["action_result"],
         draft_mode        = state.get("draft_mode", False),
         user_message      = latest_user_msg,
-        guardrail_pending = effective_guardrail_pending,
+        guardrail_pending = state.get("guardrail_pending", False),
     )
 
     updated_messages = state["messages"] + [
