@@ -53,8 +53,8 @@ _FIELD_ALIASES = {
     "null_rate"  : ["null_rate", "missing_rate", "null_pct"],
     "confidence" : ["confidence", "confidence_score", "score"],
     "mi_score"   : ["mutual_info", "mi_score", "mutual_information"],
-    "p_value"    : ["mann_whitney_p", "chi2_p", "p_value", "p_val"],
-    "churn_gap"  : ["gap_pp", "churn_gap", "gap"],
+    "p_value"    : ["mw", "mann_whitney_p", "chi2_p", "p_value", "p_val"],
+    "churn_gap"  : ["null_gap", "gap_pp", "churn_gap", "gap", "neg_gap"],
     "risk_tag"   : ["risk_tag", "tag", "risk"],
     "verdict"    : ["verdict", "decision", "recommendation"],
 }
