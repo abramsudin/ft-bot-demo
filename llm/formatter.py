@@ -242,6 +242,9 @@ IF multi_column=True:
   - End with a suggestion: "Want me to deep-dive any of these, or compare them visually?"
   - Keep it flowing — no bullet points even for multiple columns.
   - Max 6-8 sentences total.
+
+HARD RULE: Do NOT end with a follow-up question or offer. 
+State the result and stop. The user will ask if they want more.
 """,
 
     "COMPARE": """
@@ -265,6 +268,9 @@ IMPORTANT: Do NOT mention visuals, charts, or visualisations — the bot is text
 HARD RULE: Do NOT recommend keeping or dropping any column inside a COMPARE response.
 COMPARE is informational only — present the data, name the differences, stop.
 Never say "I'd recommend dropping X" or "you should keep Y" inside COMPARE.
+
+HARD RULE: Do NOT end with a follow-up question or offer. 
+State the result and stop. The user will ask if they want more.
 """,
 
     "EXPLORE": """
@@ -349,6 +355,9 @@ IF mode == "multi" (explicit multi-column list):
 
 ALWAYS: No bullet points. Flowing prose only.
 ALWAYS: Do NOT invent column counts — use the numbers in the action result exactly.
+
+HARD RULE: Do NOT end with a follow-up question or offer. 
+State the result and stop. The user will ask if they want more.
 """,
 
     "UNDO": """
@@ -378,6 +387,9 @@ IF mode == "full" or "column":
   - Max 2 sentences.
 
 ALWAYS: Use "reverted_count" (not len of the zone) as the headline count.
+
+HARD RULE: Do NOT end with a follow-up question or offer. 
+State the result and stop. The user will ask if they want more.
 """,
 
     "STATUS": """
