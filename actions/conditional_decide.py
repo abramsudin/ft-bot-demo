@@ -368,6 +368,20 @@ def _evaluate_condition(cond: dict, row_dict: dict, col: str, *, debug: bool = F
             "note"           : note,
         }
 
+    # Issue A FIX: null_rate is stored as a percentage in verdict_df (e.g. 97.5 means 97.5%).
+    # The classifier sends threshold as a decimal (e.g. 0.60 meaning 60%).
+    # Without normalisation, 97.5 > 0.6 is True for almost every column,
+    # causing 200+ matches and immediately hitting the 75% guardrail.
+    # Fix: if field is null_rate and threshold looks like a decimal (≤ 1.0), scale it up.
+    if field == "null_rate" and threshold is not None:
+        try:
+            if float(threshold) <= 1.0:
+                threshold = float(threshold) * 100
+                if debug:
+                    print(f"\n[CONDITIONAL_DECIDE]   null_rate threshold normalised → {threshold}")
+        except (TypeError, ValueError):
+            pass
+
     try:
         passed = _compare(actual, operator, threshold)
     except Exception as exc:
@@ -390,7 +404,7 @@ def _evaluate_condition(cond: dict, row_dict: dict, col: str, *, debug: bool = F
         "passed"         : passed,
         "field"          : field,
         "actual_value"   : actual,
-        "threshold"      : threshold,
+        "threshold"      : threshold,   # normalised value shown in debug output
         "resolved_alias" : resolved_alias,
         "note"           : None,
     }
