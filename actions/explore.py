@@ -429,19 +429,16 @@ def _filter_by_confidence(verdict_df, band: str, feature_cols: list) -> list[str
 NULL_DRIVEN_RATE_THRESHOLD = 50.0
 
 
+# Replace the current function with:
 def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
-    """
-    Return columns whose risk_tag is exactly 'Null-Driven' (canonical KT §4.4 name).
-
-    Falls back to null_rate > threshold only if no risk_tag column exists.
-    DROP-NULL verdict columns are always included.
-    """
     try:
         results = set()
+        tag_col_found = False
 
         # Path 1 (PRIMARY): exact risk_tag == 'Null-Driven' match
         for tag_col in ("risk_tag", "tag", "risk"):
             if tag_col in verdict_df.columns:
+                tag_col_found = True
                 mask = (
                     verdict_df[tag_col]
                     .astype(str)
@@ -453,10 +450,10 @@ def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
                 else:
                     matched = verdict_df.loc[mask].index.tolist()
                 results.update(c for c in matched if c in feature_cols)
-                break  # only check first found tag column
+                break
 
-        # Path 2 (FALLBACK): if no risk_tag column at all, use null_rate threshold
-        if not results:
+        # Path 2 + 3 (FALLBACK): only when NO risk_tag column exists at all
+        if not tag_col_found:
             for rate_col in ("null_rate", "missing_rate"):
                 if rate_col in verdict_df.columns:
                     mask = verdict_df[rate_col].astype(float) > NULL_DRIVEN_RATE_THRESHOLD
@@ -467,7 +464,20 @@ def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
                     results.update(c for c in matched if c in feature_cols)
                     break
 
-        return [c for c in feature_cols if c in results]   # preserve original order
+            if "verdict" in verdict_df.columns:
+                mask = (
+                    verdict_df["verdict"]
+                    .astype(str)
+                    .str.upper()
+                    .str.contains("DROP.NULL", regex=True, na=False)
+                )
+                if "column" in verdict_df.columns:
+                    matched = verdict_df.loc[mask, "column"].tolist()
+                else:
+                    matched = verdict_df.loc[mask].index.tolist()
+                results.update(c for c in matched if c in feature_cols)
+
+        return [c for c in feature_cols if c in results]
     except Exception:
         return []
 
