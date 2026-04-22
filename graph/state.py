@@ -166,3 +166,10 @@ class GraphState(TypedDict):
     # that the user is currently reviewing/tweaking.
     # Tells the formatter to remind the user they are in a draft state.
     draft_mode: bool
+    
+    # ── 14. Guardrail Pending ─────────────────────────────────
+    # True when a bulk operation triggered the 75% guardrail and
+    # the user hasn't yet confirmed or cancelled. The formatter
+    # prepends a one-sentence reminder on subsequent turns until
+    # the user either confirms or the topic moves on.
+    guardrail_pending: bool
