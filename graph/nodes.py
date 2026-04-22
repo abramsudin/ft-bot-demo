@@ -155,7 +155,7 @@ def respond_node(state: dict) -> dict:
         action_result = state["action_result"],
         draft_mode    = state.get("draft_mode", False),
         user_message  = latest_user_msg,               # BUG 5 FIX
-        guardrail_pending = state.get("guardrail_pending", False),
+        guardrail_pending = state.get("guardrail_pending", False) and state.get("intent") not in ("CONDITIONAL_DECIDE", "DECIDE", "AUTO_DECIDE", "ACKNOWLEDGE"),
     )
 
     updated_messages = state["messages"] + [
@@ -183,8 +183,11 @@ def respond_node(state: dict) -> dict:
     # Forward active_focus if an action explicitly set it (e.g. undo.py restoring
     # from snapshot, or overview.py clearing it). Without this, LangGraph keeps
     # whatever active_focus was set by understand_node, ignoring the action's update.
+    FOCUS_UPDATING_INTENTS = {"UNDO", "OVERVIEW", "AUTO_DECIDE"}
     if action_result and "active_focus" in action_result:
-        respond_result["active_focus"] = action_result["active_focus"]
+        if state.get("intent") in FOCUS_UPDATING_INTENTS:
+            respond_result["active_focus"] = action_result["active_focus"]
+    # For all other intents (DECIDE, ANALYSE, etc.), trust understand_node's value
 
     # Forward overview_mode if an action set it (overview.py sets this explicitly)
     if action_result and "overview_mode" in action_result:
