@@ -195,6 +195,7 @@ IF zone_analysis == True (zone-level query):
     - End with: "Want to keep these, or go deeper on any specific column?"
     - Max 6 sentences. No bullets.
 
+
   CASE B — user_question contains "drop", "remove", "cut", "eliminate", "should i drop":
     - Lead with how many can safely be dropped from this zone.
     - Name the weakest columns (bottom of per_col_ranked) with their reason.
@@ -229,7 +230,7 @@ IF single column (no multi_column key or multi_column=False):
   - If there's a risk tag or null group, mention it briefly.
   - STOP. Do NOT add a follow-up question or offer (e.g. "Want to deep-dive?" or
     "Want to keep or drop it?"). The user will ask if they want more.
-  - Max 3 sentences.
+  - Max 4 sentences.
 
 CONFIDENCE SCALE (applies to all sub-modes above):
   Always express confidence as an integer 0–100. High ≥ 70, Medium 45–69, Low < 45.
@@ -366,8 +367,11 @@ The user reversed a decision.
 Check "mode" in the action result:
 
 IF mode == "multi_step" (steps > 1):
-  - Confirm how many steps were undone (use "steps" field).
-  - Use "reverted_count" as the number of columns that actually changed.
+  - CRITICAL: Lead with how many DECISIONS were undone using the "steps" field —
+    say "X decision(s) undone" or "rewound X step(s)". Do NOT lead with the column count.
+    "steps" = number of decision snapshots popped (what the user asked to undo).
+  - Then mention "reverted_count" as secondary detail only — how many columns actually
+    changed value as a result (e.g. "affecting Y columns").
   - If the undo snapshot came from a bulk-drop, the zone size may have been larger
     than reverted_count — this is expected because columns already dropped before the
     bulk ran were not affected. Do NOT flag this as an error; explain it naturally if
@@ -386,7 +390,8 @@ IF mode == "full" or "column":
     discrepancy, explain it in plain English using the note.
   - Max 2 sentences.
 
-ALWAYS: Use "reverted_count" (not len of the zone) as the headline count.
+ALWAYS: Use "steps" as the headline count for multi_step (decisions popped).
+        Use "reverted_count" for multi_step column detail only — never as the lead figure.
 
 HARD RULE: Do NOT end with a follow-up question or offer. 
 State the result and stop. The user will ask if they want more.
@@ -420,6 +425,7 @@ Structure:
      Else: "All columns have been decided — you can export the report when ready."
 
 HARD RULE: Do NOT end the STATUS response with a question. Just state the facts and stop.
+
 HARD RULE: The coverage percentage MUST come from the "coverage_pct" field.
   NEVER compute it yourself from kept/dropped/total — use the field directly.
   NEVER output "0%" unless coverage_pct is literally 0.
@@ -457,6 +463,7 @@ The user asked to generate the final report.
 - If pending columns exist, mention that.
 - Max 3 sentences.
 """,
+
     "ACKNOWLEDGE": """
 The user dismissed a suggestion or is standing by with nothing to action.
 - Respond with a single short, natural sentence.
@@ -469,6 +476,7 @@ Examples of good responses:
   "Understood — ready when you are."
   "No worries, just let me know."
 """,
+
     "AMBIGUOUS": """
 The user's message was unclear.
 
@@ -512,14 +520,14 @@ def _build_prompt(intent: str, action_result: dict, user_message: str = "", guar
         f"\nUSER'S LATEST MESSAGE (answer this specific question if applicable — "
         f"lead with the direct answer before any broader narrative):\n{user_message}\n"
     ) if user_message else ""
-    
+
     guardrail_block = (
         "\n⚠️ GUARDRAIL REMINDER: A prior bulk operation is still pending confirmation "
         "from the user. You MUST prepend exactly ONE sentence to your response: "
         "'Just a note — a bulk drop is still waiting for your confirm before it applies.' "
         "Then answer the user's actual question normally. Do not forget this reminder.\n"
     ) if guardrail_pending and not (action_result or {}).get("guardrail_triggered") else ""
-    
+
     return f"""You are the response writer for a feature selection assistant.
 Your job: turn the structured action result below into a clear, friendly reply for the user.
 
@@ -555,7 +563,7 @@ def format_response(intent: str, action_result: dict | None, draft_mode: bool = 
         action_result = {"status": "ok", "detail": "Action completed with no additional output."}
 
     prompt = _build_prompt(intent, action_result, user_message, guardrail_pending)
-    
+
     load_dotenv()
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
@@ -710,7 +718,7 @@ def _safe_fallback(intent: str, action_result: dict) -> str:
             if r.get("reason") == "conditional_logic"
             else "I didn't quite catch that — could you rephrase?"
             ),
-    }
+      }
 
     fn = fallbacks.get(intent, lambda r: "Done. What would you like to do next?")
     return fn(action_result)
