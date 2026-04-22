@@ -89,6 +89,7 @@ def build_graph(session: dict) -> tuple:
         "last_response": None,
         "overview_mode": None,
         "draft_mode"   : False,    # <-- ADDED (I-2)
+        "guardrail_pending": False,
     }
 
     return agent, initial_state
