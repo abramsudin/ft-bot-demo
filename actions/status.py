@@ -71,11 +71,27 @@ def run(state: dict) -> dict:
     decided      = kept + dropped
     coverage_pct = round((decided / total_cols) * 100, 1) if total_cols > 0 else 0.0
 
-    # ── Count human overrides from the decision log ────────────
-    override_count = sum(
-        1 for entry in decision_log
-        if entry.get("override") is True
-    )
+    # ── Count live overrides: current decisions that contradict bot verdict ──
+    # Derived from live decisions dict vs verdict_df — NOT from decision_log.
+    # decision_log is append-only so it retains overrides even after undo;
+    # this approach correctly resets when an undo removes the override decision.
+    override_count = 0
+    if verdict_df is not None:
+        for col, user_dec in decisions.items():
+            try:
+                if "column" in verdict_df.columns:
+                    rows = verdict_df[verdict_df["column"] == col]
+                else:
+                    rows = verdict_df[verdict_df.index == col]
+                if rows.empty:
+                    continue
+                bot_verdict = str(rows.iloc[0]["verdict"]).upper()
+                bot_keep  = bot_verdict == "KEEP"
+                user_keep = user_dec == "keep"
+                if user_keep != bot_keep:
+                    override_count += 1
+            except Exception:
+                pass
 
     # ── Bot verdict alignment stats ───────────────────────────
     agreement_stats = _compute_agreement(decisions, verdict_df)
