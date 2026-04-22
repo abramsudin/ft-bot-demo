@@ -81,7 +81,6 @@ _INTENT_PATTERNS = [
     (r"\bAMBIGUOUS\b",         "AMBIGUOUS"),
     (r"\bACKNOWLEDGE\b",       "ACKNOWLEDGE"),
     (r"\bEDA\b",               "EDA"),  # fallback only
-    
 ]
 
 
@@ -328,6 +327,7 @@ DECIDE      — User is EXPLICITLY making a keep/drop decision (imperative state
               ⚠️ CRITICAL: Any phrase mentioning a column PROPERTY as the reason to drop
                  ("with null values", "with no signal", "with low confidence", "with high nulls")
                  → CONDITIONAL_DECIDE, NOT DECIDE. Only pure zone/column commands → DECIDE.
+
 UNDO        — User wants to reverse a previous decision.
               Examples: "undo that", "revert Var83", "go back",
                         "undo the last 3 decisions", "revert the last 2 changes",
@@ -1083,13 +1083,13 @@ def classify(
             result["params"] = {"column": None, "steps": None, "target_action": None}
             result["resolved_focus"] = None
             result["focus_clear"] = True
-            
+
     # ── EXPLAIN focus_clear SAFETY NET ───────────────────────────
     # EXPLAIN must always set focus_clear=True. If the LLM missed it, enforce it.
     if result["intent"] == "EXPLAIN":
         result["focus_clear"] = True
         result["resolved_focus"] = None
-
+        
     # ── resolved_focus backfill ─────────────────────────────────────────────
     # Handles both "columns" (list) and "column" (single str).
     # Preserves active_focus on AMBIGUOUS turns so context is not lost.
@@ -1135,8 +1135,27 @@ def classify(
                             else None  # list focus: pronoun handled via cols_from_params above
                         )
                         if col_from_params != existing:
-                            # User named a different/new column explicitly
-                            result["resolved_focus"] = col_from_params
+                            # Issue B FIX: If active_focus was None coming in, the LLM may
+                            # have resolved the column from conversation history rather than
+                            # the current user message. Check whether the resolved column
+                            # name literally appears in the current message. If it does not,
+                            # it came from history — force AMBIGUOUS so the user is asked
+                            # to confirm which column they mean.
+                            if active_focus is None:
+                                if col_from_params not in user_message:
+                                    result["intent"] = "AMBIGUOUS"
+                                    result["params"] = {
+                                        "ambiguity_type"       : "ambiguous_column",
+                                        "stale_focus_candidate": col_from_params,
+                                    }
+                                    result["resolved_focus"] = None
+                                    result["focus_clear"]    = False
+                                else:
+                                    # Column was named explicitly in this message — safe to use
+                                    result["resolved_focus"] = col_from_params
+                            else:
+                                # User named a different/new column explicitly
+                                result["resolved_focus"] = col_from_params
                         # else: pronoun pointed at current focus — leave resolved_focus=None
                     else:
                         result["resolved_focus"] = col_from_params
