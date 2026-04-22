@@ -151,6 +151,7 @@ def respond_node(state: dict) -> dict:
         action_result = state["action_result"],
         draft_mode    = state.get("draft_mode", False),
         user_message  = latest_user_msg,               # BUG 5 FIX
+        guardrail_pending = state.get("guardrail_pending", False),
     )
 
     updated_messages = state["messages"] + [
@@ -184,5 +185,14 @@ def respond_node(state: dict) -> dict:
     # Forward overview_mode if an action set it (overview.py sets this explicitly)
     if action_result and "overview_mode" in action_result:
         respond_result["overview_mode"] = action_result["overview_mode"]
-
+        
+    # ── Issue 5: Track guardrail_pending across turns ─────────
+    # Set True when this turn triggered a guardrail block.
+    # Clear when the next write intent succeeds without a guardrail,
+    # or when the user explicitly cancels (ACKNOWLEDGE).
+    action_result_raw = action_result or {}
+    if action_result_raw.get("guardrail_triggered"):
+        respond_result["guardrail_pending"] = True
+    elif state["intent"] in ("CONDITIONAL_DECIDE", "DECIDE", "AUTO_DECIDE", "ACKNOWLEDGE"):
+        respond_result["guardrail_pending"] = False
     return respond_result
