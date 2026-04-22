@@ -150,12 +150,7 @@ def respond_node(state: dict) -> dict:
             latest_user_msg = msg.get("content", "")
             break
 
-    GUARDRAIL_SUPPRESS_INTENTS = {"ACKNOWLEDGE", "ANALYSE", "EXPLORE", "EXPLAIN",
-                               "COMPARE", "OVERVIEW", "AMBIGUOUS"}
-    effective_guardrail_pending = (
-        state.get("guardrail_pending", False)
-        and state["intent"] not in GUARDRAIL_SUPPRESS_INTENTS
-    )
+
     response = formatter.format_response(
         intent            = state["intent"],
         action_result     = state["action_result"],
@@ -201,11 +196,11 @@ def respond_node(state: dict) -> dict:
         
     # ── Issue 5: Track guardrail_pending across turns ─────────
     # Set True when this turn triggered a guardrail block.
-    # Clear when the next write intent succeeds without a guardrail,
-    # or when the user explicitly cancels (ACKNOWLEDGE).
+    # If not triggered on this specific turn, clear the flag.
     action_result_raw = action_result or {}
     if action_result_raw.get("guardrail_triggered"):
         respond_result["guardrail_pending"] = True
-    elif state["intent"] in ("CONDITIONAL_DECIDE", "DECIDE", "AUTO_DECIDE", "ACKNOWLEDGE"):
+    else:
         respond_result["guardrail_pending"] = False
+
     return respond_result
