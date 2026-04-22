@@ -390,11 +390,21 @@ IF mode == "full" or "column":
     discrepancy, explain it in plain English using the note.
   - Max 2 sentences.
 
+IF reverted_count == 0 OR reverted list is empty:
+  - Do NOT name a column. Simply say the undo step was applied but there were
+    no committed decisions to revert (e.g. the prior action was an ANALYSE, not a DECIDE).
+  - Example: "Nothing to revert — the last action didn't write a decision."
+  - Max 1 sentence.
+
 ALWAYS: Use "steps" as the headline count for multi_step (decisions popped).
         Use "reverted_count" for multi_step column detail only — never as the lead figure.
 
 HARD RULE: Do NOT end with a follow-up question or offer. 
 State the result and stop. The user will ask if they want more.
+HARD RULE: NEVER name a column in the undo confirmation unless that exact column 
+appears in the "reverted" list of the action_result. If the reverted list is empty 
+or doesn't match the column the user just interacted with, describe the undo by 
+snapshot count only, not by column name.
 """,
 
     "STATUS": """
