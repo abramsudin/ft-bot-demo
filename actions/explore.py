@@ -467,20 +467,6 @@ def _filter_by_null_driven(verdict_df, feature_cols: list) -> list[str]:
                     results.update(c for c in matched if c in feature_cols)
                     break
 
-        # Path 3: DROP-NULL verdict — always include
-        if "verdict" in verdict_df.columns:
-            mask = (
-                verdict_df["verdict"]
-                .astype(str)
-                .str.upper()
-                .str.contains("DROP.NULL", regex=True, na=False)
-            )
-            if "column" in verdict_df.columns:
-                matched = verdict_df.loc[mask, "column"].tolist()
-            else:
-                matched = verdict_df.loc[mask].index.tolist()
-            results.update(c for c in matched if c in feature_cols)
-
         return [c for c in feature_cols if c in results]   # preserve original order
     except Exception:
         return []
