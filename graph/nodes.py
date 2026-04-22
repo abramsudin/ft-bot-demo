@@ -93,7 +93,11 @@ def understand_node(state: dict) -> dict:
         # Clear chart fields from previous turn
         "chart_b64"     : None,
         "chart_filename": None,
-        # overview_mode and eda_shown_visuals persist — NOT cleared here
+        # BUG-1 FIX: explicitly carry forward decision state
+        # so LangGraph doesn't reset them between nodes
+        "decisions"     : state.get("decisions", {}),
+        "undo_stack"    : state.get("undo_stack", []),
+        "decision_log"  : state.get("decision_log", []),
     }
 
 
