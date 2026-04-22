@@ -150,12 +150,18 @@ def respond_node(state: dict) -> dict:
             latest_user_msg = msg.get("content", "")
             break
 
+    GUARDRAIL_SUPPRESS_INTENTS = {"ACKNOWLEDGE", "ANALYSE", "EXPLORE", "EXPLAIN",
+                               "COMPARE", "OVERVIEW", "AMBIGUOUS"}
+    effective_guardrail_pending = (
+        state.get("guardrail_pending", False)
+        and state["intent"] not in GUARDRAIL_SUPPRESS_INTENTS
+    )
     response = formatter.format_response(
-        intent        = state["intent"],
-        action_result = state["action_result"],
-        draft_mode    = state.get("draft_mode", False),
-        user_message  = latest_user_msg,               # BUG 5 FIX
-        guardrail_pending = state.get("guardrail_pending", False) and state.get("intent") not in ("CONDITIONAL_DECIDE", "DECIDE", "AUTO_DECIDE", "ACKNOWLEDGE"),
+        intent            = state["intent"],
+        action_result     = state["action_result"],
+        draft_mode        = state.get("draft_mode", False),
+        user_message      = latest_user_msg,
+        guardrail_pending = effective_guardrail_pending,
     )
 
     updated_messages = state["messages"] + [
