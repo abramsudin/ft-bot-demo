@@ -1083,6 +1083,12 @@ def classify(
             result["params"] = {"column": None, "steps": None, "target_action": None}
             result["resolved_focus"] = None
             result["focus_clear"] = True
+            
+    # ── EXPLAIN focus_clear SAFETY NET ───────────────────────────
+    # EXPLAIN must always set focus_clear=True. If the LLM missed it, enforce it.
+    if result["intent"] == "EXPLAIN":
+        result["focus_clear"] = True
+        result["resolved_focus"] = None
 
     # ── resolved_focus backfill ─────────────────────────────────────────────
     # Handles both "columns" (list) and "column" (single str).
