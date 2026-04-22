@@ -369,6 +369,9 @@ ACKNOWLEDGE — User is dismissing, declining, or standing by. No action needed.
               Examples: "no need", "never mind", "nvm", "skip it", "forget it",
                         "don't do it", "actually no", "ok thanks", "got it",
                         "alright", "noted", "cool", "stop", "no don't"
+              ⚠️ CRITICAL: If the message contains "undo", "revert", or "go back" —
+                 even prefixed with "actually no" or "no wait" — route to UNDO, NOT
+                 ACKNOWLEDGE. Example: "actually no, undo that" → UNDO.
               Params: {{}}
               ⚠️ This is NOT the same as AMBIGUOUS. The user's meaning is clear —
                  they are closing the topic or declining a suggestion. Do NOT ask
@@ -881,6 +884,9 @@ User: "should I drop or keep these?"  (mentions both drop and keep — intent un
 
 User: "what are my options from here?"  (vague continuation, active_focus=null)
 → {{"intent": "AMBIGUOUS", "params": {{"ambiguity_type": "generic"}}, "resolved_focus": null, "focus_clear": false}}
+
+User: "actually no, undo that"
+→ {{"intent": "UNDO", "params": {{"column": null, "steps": null, "target_action": null}}, "resolved_focus": null, "focus_clear": true}}
 """
 
 
@@ -962,7 +968,10 @@ def classify(
                 "would affect", "would change", "matched", "dry run",
                 "preview", "would be dropped", "would be kept",
                 "guardrail", "above the", "% guardrail", "would mark",
-                "blocked", "exceeds the"
+                "blocked", "exceeds the",
+                "say confirm", "say 'confirm'", "columns match",
+                "would apply", "repeat the command", "columns would",
+                "would drop", "would keep", "to apply",
             ]):
                 prior_dry_run_context = msg.get("content", "")
                 break
@@ -1019,6 +1028,61 @@ def classify(
         return {"intent": "AMBIGUOUS", "params": {}, "resolved_focus": active_focus, "focus_clear": False}
 
     result = _parse_response(raw_text)
+
+    # ── ISSUE 1: DEEP_DIVE SAFETY NET ────────────────────────────
+    # If LLM classified as ANALYSE but missed deep_dive=True,
+    # catch it here using keyword matching on the raw user message.
+    _DEEP_DIVE_KEYWORDS = [
+        "distribution", "deep dive", "deep-dive", "eda on", "eda ",
+        "churn split", "churn rate breakdown", "null gap", "null distribution",
+        "class imbalance", "full breakdown", "full distribution",
+        "show me the distribution", "missingness", "show nulls",
+    ]
+    if result["intent"] == "ANALYSE":
+        msg_lower = user_message.lower()
+        if not result["params"].get("deep_dive"):
+            if any(kw in msg_lower for kw in _DEEP_DIVE_KEYWORDS):
+                result["params"]["deep_dive"] = True
+                if not result["params"].get("visual_type"):
+                    if "churn" in msg_lower:
+                        result["params"]["visual_type"] = "churn_rate"
+                    elif "null gap" in msg_lower:
+                        result["params"]["visual_type"] = "null_gap"
+                    elif "class imbalance" in msg_lower:
+                        result["params"]["visual_type"] = "class_imbalance"
+                    elif "null" in msg_lower:
+                        result["params"]["visual_type"] = "null_distribution"
+                    else:
+                        result["params"]["visual_type"] = "distribution"
+
+    # ── ISSUE 9: REPORT SAFETY NET ───────────────────────────────
+    # If LLM returned AMBIGUOUS for a clear report/export request,
+    # override it here.
+    _REPORT_KEYWORDS = [
+        "export the report", "generate the report", "export report",
+        "generate report", "export the output", "generate the output",
+        "export now", "generate now", "export it", "get the report",
+    ]
+    if result["intent"] == "AMBIGUOUS":
+        msg_lower = user_message.lower()
+        if any(kw in msg_lower for kw in _REPORT_KEYWORDS):
+            result["intent"] = "REPORT"
+            result["params"] = {}
+            result["resolved_focus"] = None
+            result["focus_clear"] = True
+
+    # ── ISSUE 4: UNDO vs ACKNOWLEDGE SAFETY NET ──────────────────
+    # "actually no, undo that" was being caught as ACKNOWLEDGE
+    # because "actually no" appears in the ACKNOWLEDGE examples.
+    # If the message contains an undo verb, always route to UNDO.
+    _UNDO_OVERRIDE_KEYWORDS = ["undo", "revert", "go back", "undo that", "undo it"]
+    if result["intent"] == "ACKNOWLEDGE":
+        msg_lower = user_message.lower()
+        if any(kw in msg_lower for kw in _UNDO_OVERRIDE_KEYWORDS):
+            result["intent"] = "UNDO"
+            result["params"] = {"column": None, "steps": None, "target_action": None}
+            result["resolved_focus"] = None
+            result["focus_clear"] = True
 
     # ── resolved_focus backfill ─────────────────────────────────────────────
     # Handles both "columns" (list) and "column" (single str).
