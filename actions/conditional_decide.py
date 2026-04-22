@@ -236,11 +236,13 @@ def run(state: dict) -> dict:
                 }
             }
 
-    # Push undo snapshot
+    # ── 5. Push to Undo Stack & Return ───────────────────────────
+    force_confirm = intent_params.get("force_confirm", False)
+    snapshot_label = "guardrail_force_confirm" if force_confirm else f"conditional_{decision}"
     undo_stack.append({
         "decisions"   : copy.deepcopy(decisions),
         "active_focus": state.get("active_focus"),
-        "label"       : f"conditional_{decision}",
+        "label"       : snapshot_label,
     })
 
     # Apply decisions
