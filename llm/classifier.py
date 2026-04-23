@@ -90,6 +90,7 @@ def _build_system_prompt(
     last_3_turns         : list[dict],
     focus_age            : int = 0,
     prior_dry_run_context: str = "",           # BUG 2 FIX: injected guardrail context
+    prior_guardrail_context : str = "",           # ADD THIS
 ) -> str:
 
     column_list_str = ", ".join(column_names) if column_names else "(none yet)"
@@ -987,6 +988,7 @@ def classify(
         last_3_turns          = last_n_messages,
         focus_age             = focus_age,
         prior_dry_run_context = prior_dry_run_context,   # BUG 2 FIX
+        prior_guardrail_context = prior_guardrail_context,   # ADD THIS
     )
 
     load_dotenv()
