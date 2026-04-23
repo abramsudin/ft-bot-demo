@@ -959,19 +959,24 @@ def classify(
     column_names    = session.get("feature_cols", [])
     last_n_messages = messages[-CLASSIFIER_WINDOW:]
 
-    # BUG 2 FIX: Scan history for prior dry-run or guardrail context and inject it
     prior_dry_run_context = ""
+    prior_guardrail_context = ""
     for msg in reversed(last_n_messages):
         if msg.get("role") == "assistant":
             content = msg.get("content", "").lower()
+            # Check guardrail markers FIRST — separate from dry-run markers
+            if any(term in content for term in [
+                "above the 75% guardrail", "% guardrail",
+                "blocked", "exceeds the", "type 'confirm' to proceed",
+            ]):
+                prior_guardrail_context = msg.get("content", "")
+                break
             if any(term in content for term in [
                 "would affect", "would change", "matched", "dry run",
                 "preview", "would be dropped", "would be kept",
-                "guardrail", "above the", "% guardrail", "would mark",
-                "blocked", "exceeds the",
-                "say confirm", "say 'confirm'", "columns match",
-                "would apply", "repeat the command", "columns would",
-                "would drop", "would keep", "to apply",
+                "would mark", "say confirm", "say 'confirm'",
+                "columns match", "would apply", "repeat the command",
+                "columns would", "would drop", "would keep", "to apply",
             ]):
                 prior_dry_run_context = msg.get("content", "")
                 break
