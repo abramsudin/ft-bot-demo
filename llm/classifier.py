@@ -133,9 +133,23 @@ This prevents the user from accidentally deciding the wrong column.
     else:
         dry_run_block = ""
 
+    # P1-1 FIX: guardrail confirm path — separate from dry-run confirm path
+    if prior_guardrail_context:
+        guardrail_block = (
+            f"\n⚠️ PRIOR GUARDRAIL BLOCK FOUND:\n"
+            f"{prior_guardrail_context}\n"
+            f"If the user says 'confirm', 'yes', 'go ahead', or 'do it', you MUST route to "
+            f"CONDITIONAL_DECIDE with force_confirm=True AND dry_run=False. "
+            f"Reconstruct the same conditions from the guardrail message. "
+            f"DO NOT route to AUTO_DECIDE. DO NOT set dry_run=True.\n"
+        )
+    else:
+        guardrail_block = ""
+
     return f"""You are the intent classifier for a feature selection assistant.
 Your job: read the user's latest message and return exactly one JSON object.
 {dry_run_block}
+{guardrail_block}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VALID INTENTS (pick exactly one)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
