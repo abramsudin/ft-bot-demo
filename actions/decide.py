@@ -342,6 +342,11 @@ def _decide_bulk(
                     "total_cols"         : total_cols,
                     "drop_pct_after"     : round(projected_pct * 100, 1),
                     "columns_affected"   : target_cols,
+                    "message": (
+                        f"This would drop {projected_total} of {total_cols} columns "
+                        f"({projected_pct*100:.0f}%) — above the 75% guardrail. "
+                        f"Type 'confirm' to proceed anyway."
+                    ),
                 }
             }
 
