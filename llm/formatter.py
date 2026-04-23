@@ -302,17 +302,17 @@ Check "multi_column" in the action result:
 
 IF single column (multi_column=False or absent):
   - Lead with the null rate and whether missingness correlates with churn.
-  - IF visual_type_shown == "distribution" OR visual_type_shown == "default":
+  - IF visual_focus == "distribution" OR visual_focus == "default":
       You MUST narrate the quantitative stats from action_result["distribution"].
       Always include: count, mean, std, min, p25, median, p75, max, skew.
       Format as flowing prose e.g. "Var22 has 40,449 non-null values, with a mean
       of 7.43, median of 3.0, std of 12.81, ranging from 0 to 843 (skew: 14.22)."
       Do NOT just say "right-skewed" — give the actual numbers.
-  - IF visual_type_shown == "null_gap":
+  - IF visual_focus == "null_gap":
       Lead with churn_when_null vs churn_when_present, and gap_pp.
       e.g. "When Var22 is null, churn is 4.79%; when present, 7.63% — a gap of 2.84pp."
       Do NOT re-narrate the verdict. The null gap IS the finding.
-  - IF visual_type_shown == "churn_rate":
+  - IF visual_focus == "churn_rate":
       Narrate the by_decile buckets from action_result["churn_split"].
       State the lowest and highest churn decile rates and the trend direction.
       Do NOT re-state the overall DROP verdict — focus on the churn pattern.
@@ -320,7 +320,7 @@ IF single column (multi_column=False or absent):
 
   THEN — progressive disclosure offer:
   Check "available_visuals" list. If it is non-empty:
-    End with: "I showed you the [visual_type_shown] view. I can also show you:
+    End with: "I showed you the [visual_focus] view. I can also show you:
     [list available_visuals in plain English — 'distribution', 'churn rate breakdown',
     'null gap panel']. Just pick one, or ask for something else."
   If available_visuals is empty: end with a next-step suggestion instead.
