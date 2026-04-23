@@ -1114,11 +1114,29 @@ def classify(
             # Multi-column intents (ANALYSE, EDA, COMPARE)
             cols_from_params = result["params"].get("columns")
             if cols_from_params and isinstance(cols_from_params, list):
-                if len(cols_from_params) == 1:
-                    result["resolved_focus"] = cols_from_params[0]
-                elif len(cols_from_params) > 1:
-                    result["resolved_focus"] = cols_from_params
-                # empty list (e.g. class_imbalance) → leave as None
+                # Issue B extension: for ANALYSE/EDA, if active_focus is None,
+                # only accept columns that literally appear in the current message.
+                # Prevents silent resolution to a stale column from conversation history.
+                if result["intent"] in ("ANALYSE", "EDA") and active_focus is None:
+                    cols_in_msg = [c for c in cols_from_params if c in user_message]
+                    if not cols_in_msg:
+                        result["intent"] = "AMBIGUOUS"
+                        result["params"] = {
+                            "ambiguity_type"       : "no_column",
+                            "stale_focus_candidate": cols_from_params[0] if cols_from_params else None,
+                        }
+                        result["resolved_focus"] = None
+                        result["focus_clear"]    = False
+                    elif len(cols_in_msg) == 1:
+                        result["resolved_focus"] = cols_in_msg[0]
+                    else:
+                        result["resolved_focus"] = cols_in_msg
+                else:
+                    if len(cols_from_params) == 1:
+                        result["resolved_focus"] = cols_from_params[0]
+                    elif len(cols_from_params) > 1:
+                        result["resolved_focus"] = cols_from_params
+                    # empty list (e.g. class_imbalance) → leave as None
 
             else:
                 # Single-column intents (DECIDE, UNDO, EXPLAIN)
