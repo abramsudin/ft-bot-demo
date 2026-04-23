@@ -1,3 +1,6 @@
+Nodes · PY
+Copy
+
 # ============================================================
 # graph/nodes.py
 #
@@ -22,18 +25,18 @@
 #   - I-3: Track focus_age counter; reset to 0 when focus changes,
 #     increment otherwise. Used by classifier for staleness detection.
 # ============================================================
-
+ 
 from llm   import classifier, formatter
 from graph import edges
-
-
+ 
+ 
 def understand_node(state: dict) -> dict:
     """
     LLM Call #1.
-
+ 
     Classifies intent, resolves pronouns, updates active_focus.
     active_focus may now be a single str, a list of strs, or None.
-
+ 
     Focus update priority (I-1 + I-3 fix):
       1. focus_clear=True  → clear active_focus to None (clean topic pivot)
       2. resolved_focus is not None → update to resolved value, reset focus_age
@@ -45,19 +48,19 @@ def understand_node(state: dict) -> dict:
         session      = state["session"],
         focus_age    = state.get("focus_age", 0),   # I-3: pass staleness counter
     )
-
+ 
     resolved   = result.get("resolved_focus")
     focus_clear = result.get("focus_clear", False)  # I-1: clean pivot signal
-
+ 
     # ── I-1 + I-3: Determine new active_focus and focus_age ──────────────
     current_age = state.get("focus_age", 0)
-
+ 
     # BUG 4 FIX: Don't clear focus if this is an ANALYSE deep-dive follow-up.
     # focus_clear fires on ANALYSE turns too, but deep_dive follow-ups need
     # active_focus intact so eda.py can resolve the column.
     intent_from_classifier = result.get("intent")
     is_deep_dive = result.get("params", {}).get("deep_dive", False)
-
+ 
     if focus_clear and not (intent_from_classifier == "ANALYSE" and is_deep_dive):
         if resolved is not None:
             print(
@@ -74,7 +77,7 @@ def understand_node(state: dict) -> dict:
         # No new column info — keep existing focus, age it by one turn.
         new_active_focus = state["active_focus"]
         new_focus_age    = current_age + 1
-
+ 
     # ── Debug logging (set UNDERSTAND_DEBUG=1 to enable) ─────────────────
     import os
     if os.environ.get("UNDERSTAND_DEBUG", "0") == "1":
@@ -84,7 +87,7 @@ def understand_node(state: dict) -> dict:
             f"active_focus: {state['active_focus']!r} → {new_active_focus!r} | "
             f"focus_age: {current_age} → {new_focus_age}"
         )
-
+ 
     return {
         "intent"        : result["intent"],
         "intent_params" : result["params"],
@@ -99,14 +102,14 @@ def understand_node(state: dict) -> dict:
         "undo_stack"    : state.get("undo_stack", []),
         "decision_log"  : state.get("decision_log", []),
     }
-
-
+ 
+ 
 def act_node(state: dict) -> dict:
     """
     Pure Python routing — no LLM call.
     Routes to the correct action via edges.route() and returns
     the partial state update from that action.
-
+ 
     Issue #8: Wrapped in try/except so raw Python tracebacks never
     reach the chat UI. Errors are logged to console for debugging
     and returned as a clean {"error": True} dict for the formatter
@@ -129,16 +132,16 @@ def act_node(state: dict) -> dict:
                 "intent"     : state.get("intent"),
             }
         }
-
-
+ 
+ 
 def respond_node(state: dict) -> dict:
     """
     LLM Call #2.
-
+ 
     Formats action_result into a plain-English reply.
     Appends it to messages. Clears action_result.
     Does NOT clear chart_b64, overview_mode, or eda_shown_visuals.
-
+ 
     I-2 fix: Reads draft_mode from action_result if the key is present
     so AUTO_DECIDE can set it and REPORT can clear it without nodes.py
     needing to know about every action's internals.
@@ -149,8 +152,7 @@ def respond_node(state: dict) -> dict:
         if msg.get("role") == "user":
             latest_user_msg = msg.get("content", "")
             break
-
-
+ 
     response = formatter.format_response(
         intent            = state["intent"],
         action_result     = state["action_result"],
@@ -158,17 +160,17 @@ def respond_node(state: dict) -> dict:
         user_message      = latest_user_msg,
         guardrail_pending = state.get("guardrail_pending", False),
     )
-
+ 
     updated_messages = state["messages"] + [
         {"role": "assistant", "content": response}
     ]
-
+ 
     # I-2: propagate draft_mode changes written by actions
     action_result = state["action_result"] or {}
     new_draft_mode = state.get("draft_mode", False)
     if "draft_mode" in action_result:
         new_draft_mode = action_result["draft_mode"]
-
+ 
     # Build base return
     respond_result = {
         "last_response": response,
@@ -180,7 +182,7 @@ def respond_node(state: dict) -> dict:
         "undo_stack"   : state.get("undo_stack", []),
         "decision_log" : state.get("decision_log", []),
     }
-
+ 
     # Forward active_focus if an action explicitly set it (e.g. undo.py restoring
     # from snapshot, or overview.py clearing it). Without this, LangGraph keeps
     # whatever active_focus was set by understand_node, ignoring the action's update.
@@ -189,18 +191,39 @@ def respond_node(state: dict) -> dict:
         if state.get("intent") in FOCUS_UPDATING_INTENTS:
             respond_result["active_focus"] = action_result["active_focus"]
     # For all other intents (DECIDE, ANALYSE, etc.), trust understand_node's value
-
+ 
     # Forward overview_mode if an action set it (overview.py sets this explicitly)
     if action_result and "overview_mode" in action_result:
         respond_result["overview_mode"] = action_result["overview_mode"]
-        
+ 
     # ── Issue 5: Track guardrail_pending across turns ─────────
     # Set True when this turn triggered a guardrail block.
-    # If not triggered on this specific turn, clear the flag.
+    # Clear it when:
+    #   (a) this turn itself triggered a new guardrail (replace with fresh one), OR
+    #   (b) this turn is a CONDITIONAL_DECIDE with force_confirm=True (user confirmed), OR
+    #   (c) this turn is anything other than a bare STATUS/REPORT/EXPLORE read
+    #       — i.e. the user has moved on to a new action, so the pending
+    #       guardrail is abandoned silently.
+    #
+    # The ONLY case where guardrail_pending stays True across turns is when
+    # the user asks a read-only question (STATUS, EXPLORE, REPORT) without
+    # explicitly confirming or cancelling the pending operation.
+    GUARDRAIL_PASSTHROUGH_INTENTS = {"STATUS", "EXPLORE", "REPORT"}
     action_result_raw = action_result or {}
+    current_intent = state.get("intent", "")
+ 
     if action_result_raw.get("guardrail_triggered"):
+        # A fresh guardrail fired this turn — set pending
         respond_result["guardrail_pending"] = True
-    else:
+    elif action_result_raw.get("force_confirm"):
+        # User confirmed the guardrail override — clear it
         respond_result["guardrail_pending"] = False
-
+    elif state.get("guardrail_pending") and current_intent not in GUARDRAIL_PASSTHROUGH_INTENTS:
+        # User moved on to a real action (DECIDE, ANALYSE, UNDO, ACKNOWLEDGE, etc.)
+        # — they've implicitly abandoned the pending guardrail, so clear it silently
+        respond_result["guardrail_pending"] = False
+    else:
+        # Either no pending guardrail, or user asked a passthrough read-only question
+        respond_result["guardrail_pending"] = state.get("guardrail_pending", False)
+ 
     return respond_result
