@@ -192,23 +192,20 @@ IF zone_analysis == True (zone-level query):
       confidence of 1 means it has more signal than a DROP column.
     - Name 2-3 that should be dropped (bottom of per_col_ranked — lowest confidence,
       high null_rate). Give a one-line reason for each.
-    - End with: "Want to keep these, or go deeper on any specific column?"
-    - Max 6 sentences. No bullets.
+    - Max 5 sentences. No bullets.
 
 
   CASE B — user_question contains "drop", "remove", "cut", "eliminate", "should i drop":
     - Lead with how many can safely be dropped from this zone.
     - Name the weakest columns (bottom of per_col_ranked) with their reason.
     - Flag any that might be worth keeping despite being in this zone.
-    - End with: "Want me to drop these, or review any first?"
-    - Max 5 sentences. No bullets.
+    - Max 4 sentences. No bullets.
 
   # FIXED — only triggers on pure listing requests with no keep/drop intent
   CASE C — user_question contains "list" OR "show me" OR "which columns"
           AND does NOT contain "keep", "drop", "recommend", "worth", "should":
     - Simply list ALL column names in the zone as one comma-separated inline string.
     - Do not give recommendations — just the full list.
-    - End with: "Want to analyse any of these, or apply a decision rule to the zone?"
     - Max 3 sentences.
 
   DEFAULT (generic — first look at a zone, no specific action asked):
@@ -218,8 +215,7 @@ IF zone_analysis == True (zone-level query):
       one-line reason each (verdict + risk_tag). per_col_ranked is sorted
       DESCENDING — the first entries are highest confidence.
     - Name the top 2 risk tags and what they indicate in plain English.
-    - End with: "Want me to go through specific columns in this zone, or apply a rule to them?"
-    - Max 6 sentences. NEVER offer to make a decision or recommend dropping — just describe.
+    - Max 5 sentences. NEVER offer to make a decision or recommend dropping — just describe.
 
   NEVER say "I didn't receive column names" — a zone query does not need column names.
   CONFIDENCE SCALE: always 0–100 integers. NEVER output decimals like "0.92".
@@ -240,9 +236,8 @@ IF multi_column=True:
   - Open with the overall picture: how many of the columns are KEEPs, FLAGs, DROPs.
   - Use the "summary" field to lead — it has the key comparison info prebuilt.
   - Then briefly narrate each column (1 sentence each): verdict + the most decisive signal.
-  - End with a suggestion: "Want me to deep-dive any of these, or compare them visually?"
   - Keep it flowing — no bullet points even for multiple columns.
-  - Max 6-8 sentences total.
+  - Max 5-7 sentences total.
 
 HARD RULE: Do NOT end with a follow-up question or offer. 
 State the result and stop. The user will ask if they want more.
@@ -660,7 +655,14 @@ def format_response(intent: str, action_result: dict | None, draft_mode: bool = 
                     f" This would drop {count} of {total} columns{pct_str} — "
                     f"above the 75% guardrail. Type 'confirm' to proceed anyway."
                 )
-
+        # Strip trailing solicitation questions the LLM adds despite instructions
+        reply = re.sub(
+            r"(?i)\s+(want me to|would you like( me to)?|shall i|should i|do you want( me to)?|"
+            r"can i|let me know if)[^.!?]*[?!]\s*$",
+            "",
+            reply
+        ).strip()
+        
         return reply
 
     except requests.exceptions.Timeout:
