@@ -70,6 +70,25 @@ def understand_node(state: dict) -> dict:
         # A real column was resolved this turn — update and reset age.
         new_active_focus = resolved
         new_focus_age    = 0
+        
+        # P0-2 FIX: If active_focus was None coming in (just cleared),
+        # and the resolved column doesn't literally appear in the current
+        # user message, the classifier pulled it from history — force AMBIGUOUS.
+        if state["active_focus"] is None:
+            user_msg = ""
+            for msg in reversed(state.get("messages", [])):
+                if msg.get("role") == "user":
+                    user_msg = msg.get("content", "")
+                    break
+            if isinstance(new_active_focus, str) and new_active_focus not in user_msg:
+                result["intent"] = "AMBIGUOUS"
+                result["params"] = {
+                    "ambiguity_type"       : "no_column",
+                    "stale_focus_candidate": new_active_focus,
+                }
+                new_active_focus = None
+                new_focus_age    = 0
+    
     else:
         # No new column info — keep existing focus, age it by one turn.
         new_active_focus = state["active_focus"]
