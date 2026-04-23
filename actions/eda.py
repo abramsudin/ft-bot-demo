@@ -39,7 +39,25 @@ def run(state: dict) -> dict:
     """
     intent_params = state.get("intent_params", {})
     session       = state["session"]
-
+    
+    # Class imbalance is dataset-level — no column needed
+    if intent_params.get("visual_type") == "class_imbalance":
+        target = session.get("target")
+        if target is None:
+            return {"action_result": {"error": "No target column loaded."}}
+        overall_churn = round(float(target.mean() * 100), 2)
+        return {"action_result": {
+            "visual_focus": "class_imbalance",
+            "multi_column": False,
+            "column": None,
+            "class_imbalance": {
+                "churn_rate_pct": overall_churn,
+                "non_churn_rate_pct": round(100 - overall_churn, 2),
+                "total_rows": int(len(target)),
+                "churn_count": int(target.sum()),
+            }
+        }}
+        
     # ── C-3 FIX: Robust column resolution — three-stage fallback ─
     #
     # Stage 1: intent_params["columns"] (list, the canonical key)
