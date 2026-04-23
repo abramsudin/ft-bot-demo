@@ -216,7 +216,11 @@ IF zone_analysis == True (zone-level query):
       DESCENDING — the first entries are highest confidence.
     - Name the top 2 risk tags and what they indicate in plain English.
     - Max 5 sentences. NEVER offer to make a decision or recommend dropping — just describe.
-
+  
+  HARD RULE (all zone cases — A, B, C, and DEFAULT): Do NOT end with a follow-up question
+  or any offer to keep, drop, or apply a decision. ANALYSE is read-only. State the finding
+  and stop. Never say "Would you like me to drop these?" or any equivalent.
+  
   NEVER say "I didn't receive column names" — a zone query does not need column names.
   CONFIDENCE SCALE: always 0–100 integers. NEVER output decimals like "0.92".
   
@@ -442,7 +446,8 @@ Structure:
         fill the pending slots as a draft you can edit."
      Else if pending > 0: state the pending count only. Do NOT ask "Want to keep going?"
        or any follow-up question.
-     Else: "All columns have been decided — you can export the report when ready."
+     Else if pending == 0: "All columns have been decided — you can export the report when ready."
+     Else if pending > 0: "X columns still need a decision." (use the pending field — no follow-up question)
 
 HARD RULE: Do NOT end the STATUS response with a question. Just state the facts and stop.
 
@@ -650,7 +655,13 @@ def format_response(intent: str, action_result: dict | None, draft_mode: bool = 
                 count = action_result.get("projected_drops", "many")
                 total = action_result.get("total_features", action_result.get("total_cols", "all"))
                 pct   = action_result.get("projected_pct", "")
-                pct_str = f" ({int(pct * 100)}%)" if pct else ""
+                # drop_pct_after is already a percentage (e.g. 82.1),
+                # projected_pct is a fraction (e.g. 0.82) — handle both
+                if pct:
+                    pct_display = pct if pct > 1 else pct * 100
+                    pct_str = f" ({int(pct_display)}%)"
+                else:
+                    pct_str = ""
                 reply = reply.rstrip(".").rstrip() + (
                     f" This would drop {count} of {total} columns{pct_str} — "
                     f"above the 75% guardrail. Type 'confirm' to proceed anyway."
