@@ -608,7 +608,7 @@ User: "explore missingness for Var83"
 → {{"intent": "ANALYSE", "params": {{"columns": ["Var83"], "deep_dive": true, "visual_type": "null_distribution"}}, "resolved_focus": "Var83", "focus_clear": false}}
 
 User: "show class imbalance"
-→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "class_imbalance"}}, "resolved_focus": null, "focus_clear": false}}
+→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "class_imbalance"}}, "resolved_focus": null, "focus_clear": true}}
 
 User: "churn rate breakdown"  (active_focus = "Var10")
 → {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "churn_rate"}}, "resolved_focus": "Var10", "focus_clear": false}}
