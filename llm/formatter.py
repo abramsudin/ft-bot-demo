@@ -390,6 +390,8 @@ IF mode == "full" or "column":
     discrepancy, explain it in plain English using the note.
   - Max 2 sentences.
 
+# Add after "IF mode == 'full' or 'column':" block, before ALWAYS rules:
+
 IF reverted_count == 0 OR reverted list is empty:
   - Do NOT name a column. Simply say the undo step was applied but there were
     no committed decisions to revert (e.g. the prior action was an ANALYSE, not a DECIDE).
@@ -531,7 +533,7 @@ def _build_prompt(intent: str, action_result: dict, user_message: str = "", guar
         f"lead with the direct answer before any broader narrative):\n{user_message}\n"
     ) if user_message else ""
 
-    GUARDRAIL_REMINDER_INTENTS = {"DECIDE", "CONDITIONAL_DECIDE", "STATUS", "REPORT"}
+    GUARDRAIL_REMINDER_INTENTS = {"DECIDE", "CONDITIONAL_DECIDE", "REPORT"}
     guardrail_block = (
       "\n⚠️ GUARDRAIL REMINDER: A prior bulk operation is still pending confirmation "
       "from the user. You MUST prepend exactly ONE sentence to your response: "
@@ -542,7 +544,7 @@ def _build_prompt(intent: str, action_result: dict, user_message: str = "", guar
         and intent in GUARDRAIL_REMINDER_INTENTS
         and not (action_result or {}).get("guardrail_triggered")
     ) else ""
-    
+
     return f"""You are the response writer for a feature selection assistant.
 Your job: turn the structured action result below into a clear, friendly reply for the user.
 
