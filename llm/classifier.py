@@ -694,6 +694,12 @@ User: "compare the FLAG columns"
 User: "compare all DROP columns side by side"
 → {{"intent": "COMPARE", "params": {{"columns": [], "zone": "DROP", "visual_type": "default"}}, "resolved_focus": null, "focus_clear": false}}
 
+User: "compare them"  (active_focus = ["Var22", "Var34"])
+→ {{"intent": "COMPARE", "params": {{"columns": ["Var22", "Var34"], "visual_type": "default"}}, "resolved_focus": ["Var22", "Var34"], "focus_clear": false}}
+
+User: "compare those two"  (active_focus = ["Var1", "Var5"])
+→ {{"intent": "COMPARE", "params": {{"columns": ["Var1", "Var5"], "visual_type": "default"}}, "resolved_focus": ["Var1", "Var5"], "focus_clear": false}}
+
 User: "is Var22 worth keeping?"
 → {{"intent": "ANALYSE", "params": {{"columns": ["Var22"], "zone": null}}, "resolved_focus": "Var22", "focus_clear": false}}
 
