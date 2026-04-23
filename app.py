@@ -192,15 +192,12 @@ def _run_turn(user_text: str):
     state = st.session_state.agent.invoke(state)
     st.session_state.state = state
 
-    # Issue D FIX: AUTO_DECIDE updates decisions in state but the Streamlit sidebar
-    # reads from st.session_state.state which is set before st.rerun() is called.
-    # Without this, the sidebar counts stay stale until the next user interaction.
-    if state.get("intent") == "AUTO_DECIDE":
-        st.rerun()
-
     ts        = _now_str()
     is_report = (state.get("intent") == "REPORT")
 
+    # Always append to chat_history BEFORE any st.rerun() call.
+    # Previously the AUTO_DECIDE rerun fired before these appends,
+    # causing the assistant message to be lost from the transcript.
     st.session_state.chat_history.append(
         {"role": "user", "content": user_text, "timestamp": ts}
     )
@@ -211,6 +208,11 @@ def _run_turn(user_text: str):
 
     if is_report:
         _cache_latest_report()
+
+    # Issue D FIX: sidebar rerun for AUTO_DECIDE — now safe because
+    # chat_history is already written above before we rerun.
+    if state.get("intent") == "AUTO_DECIDE":
+        st.rerun()
 
 
 
