@@ -133,23 +133,9 @@ This prevents the user from accidentally deciding the wrong column.
     else:
         dry_run_block = ""
 
-    # P1-1 FIX: guardrail confirm path — separate from dry-run confirm path
-    if prior_guardrail_context:
-        guardrail_block = (
-            f"\n⚠️ PRIOR GUARDRAIL BLOCK FOUND:\n"
-            f"{prior_guardrail_context}\n"
-            f"If the user says 'confirm', 'yes', 'go ahead', or 'do it', you MUST route to "
-            f"CONDITIONAL_DECIDE with force_confirm=True AND dry_run=False. "
-            f"Reconstruct the same conditions from the guardrail message. "
-            f"DO NOT route to AUTO_DECIDE. DO NOT set dry_run=True.\n"
-        )
-    else:
-        guardrail_block = ""
-
     return f"""You are the intent classifier for a feature selection assistant.
 Your job: read the user's latest message and return exactly one JSON object.
 {dry_run_block}
-{guardrail_block}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VALID INTENTS (pick exactly one)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1138,7 +1124,7 @@ def classify(
                 # Issue B extension: for ANALYSE/EDA, if active_focus is None,
                 # only accept columns that literally appear in the current message.
                 # Prevents silent resolution to a stale column from conversation history.
-                if result["intent"] in ("ANALYSE", "EDA") and active_focus is None:
+                if active_focus is None:
                     cols_in_msg = [c for c in cols_from_params if c in user_message]
                     if not cols_in_msg:
                         result["intent"] = "AMBIGUOUS"
@@ -1157,8 +1143,7 @@ def classify(
                         result["resolved_focus"] = cols_from_params[0]
                     elif len(cols_from_params) > 1:
                         result["resolved_focus"] = cols_from_params
-                    # empty list (e.g. class_imbalance) → leave as None
-
+             
             else:
                 # Single-column intents (DECIDE, UNDO, EXPLAIN)
                 col_from_params = result["params"].get("column")
