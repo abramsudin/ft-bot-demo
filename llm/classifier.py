@@ -611,16 +611,16 @@ User: "show class imbalance"
 → {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "class_imbalance"}}, "resolved_focus": null, "focus_clear": false}}
 
 User: "churn rate breakdown"  (active_focus = "Var10")
-→ {{"intent": "ANALYSE", "params": {{"columns": ["Var10"], "deep_dive": true, "visual_type": "churn_rate"}}, "resolved_focus": "Var10", "focus_clear": false}}
+→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "churn_rate"}}, "resolved_focus": "Var10", "focus_clear": false}}
 
 User: "show the distribution"  (active_focus = "Var10")
-→ {{"intent": "ANALYSE", "params": {{"columns": ["Var10"], "deep_dive": true, "visual_type": "distribution"}}, "resolved_focus": "Var10", "focus_clear": false}}
+→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "distribution"}}, "resolved_focus": "Var10", "focus_clear": false}}
 
 User: "null gap"  (active_focus = "Var10")
-→ {{"intent": "ANALYSE", "params": {{"columns": ["Var10"], "deep_dive": true, "visual_type": "null_gap"}}, "resolved_focus": "Var10", "focus_clear": false}}
+→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "null_gap"}}, "resolved_focus": "Var10", "focus_clear": false}}
 
 User: "now show churn rate"  (active_focus = "Var10")
-→ {{"intent": "ANALYSE", "params": {{"columns": ["Var10"], "deep_dive": true, "visual_type": "churn_rate"}}, "resolved_focus": "Var10", "focus_clear": false}}
+→ {{"intent": "ANALYSE", "params": {{"columns": [], "deep_dive": true, "visual_type": "churn_rate"}}, "resolved_focus": "Var10", "focus_clear": false}}
 
 User: "drop columns where null rate is above 60%"
 → {{"intent": "CONDITIONAL_DECIDE", "params": {{"decision": "drop", "conditions": [{{"field": "null_rate", "operator": ">", "threshold": 0.60}}], "condition_logic": "AND", "scope": null, "dry_run": false}}, "resolved_focus": null, "focus_clear": false}}
