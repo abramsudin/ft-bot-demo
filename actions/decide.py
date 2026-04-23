@@ -417,37 +417,35 @@ def _lookup_verdict(column: str, verdict_df) -> str | None:
 
 
 def _columns_for_zone(zone: str, verdict_df, feature_cols: list) -> list[str]:
+    """
+    Returns columns whose verdict matches zone exactly.
+    Only checks verdict column — does NOT fall through to risk_tag or null_group.
+    Those fallbacks were causing over-broad matches (FLAG returning 210 instead of 55).
+    """
+    if not zone or verdict_df is None:
+        return []
+
     zone_upper = zone.upper()
+    # Only valid verdict zones are KEEP, FLAG, DROP, DROP-NULL
+    VALID_ZONES = {"KEEP", "FLAG", "DROP", "DROP-NULL"}
+    if zone_upper not in VALID_ZONES:
+        return []
+
     try:
-        if "column" in verdict_df.columns:
-            col_field = "column"
-        else:
-            col_field = None
+        col_field = "column" if "column" in verdict_df.columns else None
 
-        if "verdict" in verdict_df.columns:
-            matched = verdict_df[verdict_df["verdict"].str.upper() == zone_upper]
-            if not matched.empty:
-                cols = matched[col_field].tolist() if col_field else matched.index.tolist()
-                return [c for c in cols if c in feature_cols]
+        if "verdict" not in verdict_df.columns:
+            return []
 
-        for tag_col in ("risk_tag", "tag", "risk"):
-            if tag_col in verdict_df.columns:
-                matched = verdict_df[verdict_df[tag_col].str.upper() == zone_upper]
-                if not matched.empty:
-                    cols = matched[col_field].tolist() if col_field else matched.index.tolist()
-                    return [c for c in cols if c in feature_cols]
+        matched = verdict_df[verdict_df["verdict"].str.strip().str.upper() == zone_upper]
+        if matched.empty:
+            return []
 
-        if "null_group" in verdict_df.columns:
-            matched = verdict_df[verdict_df["null_group"].str.upper() == zone_upper]
-            if not matched.empty:
-                cols = matched[col_field].tolist() if col_field else matched.index.tolist()
-                return [c for c in cols if c in feature_cols]
+        cols = matched[col_field].tolist() if col_field else matched.index.tolist()
+        return [c for c in cols if c in feature_cols]
 
     except Exception:
-        pass
-
-    return []
-
+        return []
 
 def _fuzzy_match(target: str, candidates: list[str]) -> str | None:
     target_lower = target.lower()
