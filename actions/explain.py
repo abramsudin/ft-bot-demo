@@ -396,4 +396,35 @@ def _resolve(concept: str) -> str | None:
         if alias in lower or lower in alias:
             return key
 
+    # Fuzzy match: catch common misspellings e.g. "point bisceral"
+    # Uses character-level edit distance — threshold of 2 handles
+    # single transpositions and one wrong character.
+    best_key   = None
+    best_dist  = 999
+    for alias, key in _ALIAS_INDEX.items():
+        dist = _edit_distance(lower, alias)
+        if dist < best_dist:
+            best_dist = dist
+            best_key  = key
+    if best_dist <= 2:
+        return best_key
+
     return None
+
+def _edit_distance(a: str, b: str) -> int:
+    """Levenshtein distance between two strings."""
+    if abs(len(a) - len(b)) > 4:
+        return 999  # skip obviously distant pairs early
+    m, n = len(a), len(b)
+    dp = list(range(n + 1))
+    for i in range(1, m + 1):
+        prev = dp[0]
+        dp[0] = i
+        for j in range(1, n + 1):
+            temp = dp[j]
+            if a[i - 1] == b[j - 1]:
+                dp[j] = prev
+            else:
+                dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+            prev = temp
+    return dp[n]
