@@ -1102,6 +1102,15 @@ def classify(
     if result["intent"] == "EXPLAIN":
         result["focus_clear"] = True
         result["resolved_focus"] = None
+
+    # ── EDA FOLLOW-UP focus_clear SAFETY NET ─────────────────────
+    # A deep_dive ANALYSE turn is always a continuation — never a topic pivot.
+    # If the LLM erroneously emits focus_clear=True for a deep_dive turn,
+    # it would wipe active_focus and the next follow-up visual type request
+    # (e.g. "and the null gap") would lose the column context (BUG-4 regression).
+    # Rule: any ANALYSE turn with deep_dive=True must have focus_clear=False.
+    if result["intent"] == "ANALYSE" and result["params"].get("deep_dive"):
+        result["focus_clear"] = False
         
     # ── resolved_focus backfill ─────────────────────────────────────────────
     # Handles both "columns" (list) and "column" (single str).
