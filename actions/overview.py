@@ -210,6 +210,14 @@ def run(state: dict) -> dict:
             "redundancy_pairs"     : redundancy_pairs,
             "redundancy_drop"      : redundancy_drop,
             "top_keep_columns"     : top_keeps,
+            "structural_findings"  : {
+                "n_null_groups"        : n_null_groups,
+                "cols_in_groups"       : cols_in_groups,
+                "n_null_indicator_cols": len(null_ind_cols),
+                "null_indicator_cols"  : null_ind_cols,
+                "n_redundancy_pairs"   : len(redundancy_pairs),
+                "redundancy_pairs"     : redundancy_pairs,
+            },
             "flag_columns"         : flag_summary,
 
             "bot_recommendation": (
