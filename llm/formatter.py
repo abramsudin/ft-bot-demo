@@ -336,6 +336,18 @@ IF single column (multi_column=False or absent):
     'null gap panel']. Just pick one, or ask for something else."
   If available_visuals is empty: end with a next-step suggestion instead.
 
+IF visual_focus == "class_imbalance":
+  This is a dataset-level view — no column is in scope.
+  - Lead with the overall churn rate and non-churn rate as percentages.
+  - State the raw counts: how many churned vs retained rows.
+  - Note the class ratio (e.g. "roughly 1 in 14 customers churned").
+  - Give a one-line interpretation for modelling (e.g. "this is a moderately imbalanced
+    dataset — consider class weighting or oversampling when training").
+  - Max 4 sentences. No bullets.
+  - Do NOT mention any column name — this is a whole-dataset metric.
+  - Use the class_imbalance field in action_result: churn_rate_pct, non_churn_rate_pct,
+    total_rows, churn_count.
+    
 IF multi_column=True (visual_type = "null_distribution"):
   - Summarise which columns have the highest null rates.
   - Note which have meaningful null signal gaps (gap > 3pp = strong, 1-3pp = moderate).
